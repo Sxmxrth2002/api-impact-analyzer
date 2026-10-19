@@ -39,6 +39,15 @@ export interface ResponseFieldChange {
   field: string;
 }
 
+export interface ResponseTypeChange {
+  endpoint: string;
+  statusCode: string;
+  mediaType: string;
+  field: string;
+  oldType: string;
+  newType: string;
+}
+
 export function detectRemovedEndpoints(oldSpec: OpenApiSpec, newSpec: OpenApiSpec): string[] {
     const removedEndpoints: string[] = [];
     const oldPaths = oldSpec.paths ?? {};
@@ -103,6 +112,74 @@ export function detectRemovedResponseFields(
                 statusCode,
                 mediaType,
                 field,
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return changes;
+}
+
+
+export function detectResponseTypeChanges(
+  oldSpec: OpenApiSpec,
+  newSpec: OpenApiSpec
+): ResponseTypeChange[] {
+  const changes: ResponseTypeChange[] = [];
+
+  const oldPaths = oldSpec.paths ?? {};
+  const newPaths = newSpec.paths ?? {};
+
+  for (const [path, oldPathItem] of Object.entries(oldPaths)) {
+    const newPathItem = newPaths[path];
+
+    if (!newPathItem) continue;
+
+    for (const method of HTTP_METHODS) {
+      const oldOperation = oldPathItem[method] as Operation | undefined;
+      const newOperation = newPathItem[method] as Operation | undefined;
+
+      if (!oldOperation || !newOperation) continue;
+
+      const oldResponses = oldOperation.responses ?? {};
+      const newResponses = newOperation.responses ?? {};
+
+      for (const [statusCode, oldResponse] of Object.entries(oldResponses)) {
+        const newResponse = newResponses[statusCode];
+
+        if (!newResponse) continue;
+
+        const oldContent = oldResponse.content ?? {};
+        const newContent = newResponse.content ?? {};
+
+        for (const [mediaType, oldMedia] of Object.entries(oldContent)) {
+          const newMedia = newContent[mediaType];
+
+          if (!newMedia) continue;
+
+          const oldProperties = oldMedia.schema?.properties ?? {};
+          const newProperties = newMedia.schema?.properties ?? {};
+
+          for (const [field, oldSchema] of Object.entries(oldProperties)) {
+            const newSchema = newProperties[field];
+
+            if (!newSchema) continue;
+
+            if (
+              oldSchema.type !== undefined &&
+              newSchema.type !== undefined &&
+              oldSchema.type !== newSchema.type
+            ) {
+              changes.push({
+                endpoint: `${method.toUpperCase()} ${path}`,
+                statusCode,
+                mediaType,
+                field,
+                oldType: oldSchema.type,
+                newType: newSchema.type,
               });
             }
           }

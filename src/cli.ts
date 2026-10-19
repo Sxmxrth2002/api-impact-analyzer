@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import YAML from "yaml";
-import { detectRemovedEndpoints, detectRemovedResponseFields} from "./analyzer/diff.js";
+import { detectRemovedEndpoints, detectRemovedResponseFields, detectResponseTypeChanges} from "./analyzer/diff.js";
 
 function getArgument(name: string): string {
   const index = process.argv.indexOf(name);
@@ -48,6 +48,21 @@ function main(): void {
 
   for (const change of removedResponseFields) {
     console.log(`- ${change.endpoint} [${change.statusCode}] ` + `Removed field: ${change.field}`);
+  }
+
+  const typeChanges = detectResponseTypeChanges(
+    oldSpec,
+    newSpec
+  );
+
+  console.log(`Response type changes: ${typeChanges.length}`);
+
+  for (const change of typeChanges) {
+    console.log(
+      `- ${change.endpoint} [${change.statusCode}] ` +
+      `Field: ${change.field} ` +
+      `(${change.oldType} → ${change.newType})`
+    );
   }
 }
 
