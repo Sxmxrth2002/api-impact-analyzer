@@ -1,6 +1,12 @@
 import { readFileSync } from "node:fs";
 import YAML from "yaml";
-import { detectRemovedEndpoints, detectRemovedResponseFields, detectResponseTypeChanges} from "./analyzer/diff.js";
+import { 
+  detectRemovedEndpoints, 
+  detectRemovedResponseFields, 
+  detectResponseTypeChanges, 
+  detectNewRequiredRequestFields, 
+  detectRemovedResponseStatusCodes
+} from "./analyzer/diff.js";
 
 function getArgument(name: string): string {
   const index = process.argv.indexOf(name);
@@ -62,6 +68,33 @@ function main(): void {
       `- ${change.endpoint} [${change.statusCode}] ` +
       `Field: ${change.field} ` +
       `(${change.oldType} → ${change.newType})`
+    );
+  }
+
+  const requiredFields = detectNewRequiredRequestFields(
+    oldSpec,
+    newSpec
+  );
+
+  console.log(`New required request fields: ${requiredFields.length}`);
+
+  for (const change of requiredFields) {
+    console.log(
+      `- ${change.endpoint} [${change.mediaType}] ` +
+      `New required field: ${change.field}`
+    );
+  }
+
+  const removedStatusCodes = detectRemovedResponseStatusCodes(
+    oldSpec,
+    newSpec
+  );
+
+  console.log(`Removed response status codes: ${removedStatusCodes.length}`);
+
+  for (const change of removedStatusCodes) {
+    console.log(
+      `- ${change.endpoint} Removed status code: ${change.statusCode}`
     );
   }
 }

@@ -6,10 +6,24 @@ info:
 
 paths:
   /users:
-    get:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
       responses:
-        '200':
-          description: List of users
+        '201':
+          description: User created
+        '400':
+          description: Invalid request
 
   /users/{id}:
     get:
@@ -27,8 +41,5 @@ paths:
                     type: string
                   email:
                     type: string
-
-    delete:
-      responses:
-        '204':
-          description: User deleted
+        '404':
+          description: User not found

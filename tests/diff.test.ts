@@ -1,6 +1,12 @@
 
 import { describe, it, expect } from "vitest";
-import { detectRemovedEndpoints, detectRemovedResponseFields, detectResponseTypeChanges } from "../src/analyzer/diff.js";
+import { 
+  detectRemovedEndpoints, 
+  detectRemovedResponseFields, 
+  detectResponseTypeChanges, 
+  detectNewRequiredRequestFields, 
+  detectRemovedResponseStatusCodes 
+} from "../src/analyzer/diff.js";
 
 describe("OpenAPI Contract Diff Engine", () => {
 
@@ -367,6 +373,163 @@ describe("OpenAPI Contract Diff Engine", () => {
       "id",
       "active",
     ]);
+  });
+
+
+  it("detects a newly required request field", () => {
+    const oldSpec = {
+      paths: {
+        "/users": {
+          post: {
+            requestBody: {
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    required: ["name"],
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const newSpec = structuredClone(oldSpec);
+    newSpec.paths["/users"].post.requestBody
+      .content["application/json"].schema.required.push("email");
+
+    expect(
+      detectNewRequiredRequestFields(oldSpec, newSpec)
+    ).toEqual([
+      {
+        endpoint: "POST /users",
+        mediaType: "application/json",
+        field: "email",
+      },
+    ]);
+  });
+
+  it("does not flag optional request fields", () => {
+    const oldSpec = {
+      paths: {
+        "/users": {
+          post: {
+            requestBody: {
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    required: ["name"],
+                    properties: {
+                      name: { type: "string" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const newSpec = structuredClone(oldSpec);
+
+    Object.assign(
+      newSpec.paths["/users"].post.requestBody
+        .content["application/json"].schema.properties,
+      { email: { type: "string" } }
+    );
+
+    expect(
+      detectNewRequiredRequestFields(oldSpec, newSpec)
+    ).toEqual([]);
+  });
+
+  it("detects a removed response status code", () => {
+    const oldSpec = {
+      paths: {
+        "/users": {
+          get: {
+            responses: {
+              "200": { description: "Success" },
+              "404": { description: "Not found" },
+            },
+          },
+        },
+      },
+    };
+
+    const newSpec = {
+      paths: {
+        "/users": {
+          get: {
+            responses: {
+              "200": { description: "Success" },
+            },
+          },
+        },
+      },
+    };
+
+    expect(
+      detectRemovedResponseStatusCodes(oldSpec, newSpec)
+    ).toEqual([
+      {
+        endpoint: "GET /users",
+        statusCode: "404",
+      },
+    ]);
+  });
+
+  it("does not flag newly added response status codes", () => {
+    const oldSpec = {
+      paths: {
+        "/users": {
+          get: {
+            responses: {
+              "200": { description: "Success" },
+            },
+          },
+        },
+      },
+    };
+
+    const newSpec = {
+      paths: {
+        "/users": {
+          get: {
+            responses: {
+              "200": { description: "Success" },
+              "404": { description: "Not found" },
+            },
+          },
+        },
+      },
+    };
+
+    expect(
+      detectRemovedResponseStatusCodes(oldSpec, newSpec)
+    ).toEqual([]);
+  });
+
+  it("does not double-report status codes from removed endpoints", () => {
+    const oldSpec = {
+      paths: {
+        "/users": {
+          get: {
+            responses: {
+              "200": { description: "Success" },
+            },
+          },
+        },
+      },
+    };
+
+    expect(
+      detectRemovedResponseStatusCodes(oldSpec, { paths: {} })
+    ).toEqual([]);
   });
 
 });

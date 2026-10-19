@@ -17,11 +17,16 @@ interface OpenApiSpec {
 
 interface Schema {
   type?: string;
+  required?: string[];
   properties?: Record<string, Schema>;
 }
 
 interface MediaType {
   schema?: Schema;
+}
+
+interface RequestBody {
+  content?: Record<string, MediaType>;
 }
 
 interface Response {
@@ -30,6 +35,7 @@ interface Response {
 
 interface Operation {
   responses?: Record<string, Response>;
+  requestBody?: RequestBody;
 }
 
 export interface ResponseFieldChange {
@@ -46,6 +52,17 @@ export interface ResponseTypeChange {
   field: string;
   oldType: string;
   newType: string;
+}
+
+export interface RequiredRequestFieldChange {
+  endpoint: string;
+  mediaType: string;
+  field: string;
+}
+
+export interface RemovedStatusCodeChange {
+  endpoint: string;
+  statusCode: string;
 }
 
 export function detectRemovedEndpoints(oldSpec: OpenApiSpec, newSpec: OpenApiSpec): string[] {
@@ -123,7 +140,6 @@ export function detectRemovedResponseFields(
   return changes;
 }
 
-
 export function detectResponseTypeChanges(
   oldSpec: OpenApiSpec,
   newSpec: OpenApiSpec
@@ -183,6 +199,93 @@ export function detectResponseTypeChanges(
               });
             }
           }
+        }
+      }
+    }
+  }
+
+  return changes;
+}
+
+export function detectNewRequiredRequestFields(
+  oldSpec: OpenApiSpec,
+  newSpec: OpenApiSpec
+): RequiredRequestFieldChange[] {
+  const changes: RequiredRequestFieldChange[] = [];
+
+  const oldPaths = oldSpec.paths ?? {};
+  const newPaths = newSpec.paths ?? {};
+
+  for (const [path, oldPathItem] of Object.entries(oldPaths)) {
+    const newPathItem = newPaths[path];
+
+    if (!newPathItem) continue;
+
+    for (const method of HTTP_METHODS) {
+      const oldOperation = oldPathItem[method] as Operation | undefined;
+      const newOperation = newPathItem[method] as Operation | undefined;
+
+      if (!oldOperation || !newOperation) continue;
+
+      const oldContent = oldOperation.requestBody?.content ?? {};
+      const newContent = newOperation.requestBody?.content ?? {};
+
+      for (const [mediaType, newMedia] of Object.entries(newContent)) {
+        const oldMedia = oldContent[mediaType];
+
+        if (!oldMedia) continue;
+
+        const oldRequired = new Set(
+          oldMedia.schema?.required ?? []
+        );
+
+        const newRequired = newMedia.schema?.required ?? [];
+
+        for (const field of newRequired) {
+          if (!oldRequired.has(field)) {
+            changes.push({
+              endpoint: `${method.toUpperCase()} ${path}`,
+              mediaType,
+              field,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return changes;
+}
+
+export function detectRemovedResponseStatusCodes(
+  oldSpec: OpenApiSpec,
+  newSpec: OpenApiSpec
+): RemovedStatusCodeChange[] {
+  const changes: RemovedStatusCodeChange[] = [];
+
+  const oldPaths = oldSpec.paths ?? {};
+  const newPaths = newSpec.paths ?? {};
+
+  for (const [path, oldPathItem] of Object.entries(oldPaths)) {
+    const newPathItem = newPaths[path];
+
+    if (!newPathItem) continue;
+
+    for (const method of HTTP_METHODS) {
+      const oldOperation = oldPathItem[method] as Operation | undefined;
+      const newOperation = newPathItem[method] as Operation | undefined;
+
+      if (!oldOperation || !newOperation) continue;
+
+      const oldResponses = oldOperation.responses ?? {};
+      const newResponses = newOperation.responses ?? {};
+
+      for (const statusCode of Object.keys(oldResponses)) {
+        if (!Object.hasOwn(newResponses, statusCode)) {
+          changes.push({
+            endpoint: `${method.toUpperCase()} ${path}`,
+            statusCode,
+          });
         }
       }
     }

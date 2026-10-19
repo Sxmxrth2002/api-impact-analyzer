@@ -6,10 +6,23 @@ info:
 
 paths:
   /users:
-    get:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
       responses:
-        '200':
-          description: List of users
+        '201':
+          description: User created
 
   /users/{id}:
     get:
