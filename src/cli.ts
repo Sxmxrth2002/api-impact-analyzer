@@ -1,12 +1,5 @@
-import { readFileSync } from "node:fs";
-import YAML from "yaml";
-import { 
-  detectRemovedEndpoints, 
-  detectRemovedResponseFields, 
-  detectResponseTypeChanges, 
-  detectNewRequiredRequestFields, 
-  detectRemovedResponseStatusCodes
-} from "./analyzer/diff.js";
+import { loadOpenAPISpec } from "./analyzer/spec-loader.js";
+import { analyzeContract } from "./analyzer/findings.js";
 
 function getArgument(name: string): string {
   const index = process.argv.indexOf(name);
@@ -18,93 +11,44 @@ function getArgument(name: string): string {
   return process.argv[index + 1];
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const beforePath = getArgument("--before");
   const afterPath = getArgument("--after");
 
-  const oldSpec = YAML.parse(
-    readFileSync(beforePath, "utf8")
+  const oldSpec = await loadOpenAPISpec(beforePath);
+  const newSpec = await loadOpenAPISpec(afterPath);
+
+  const findings = analyzeContract(oldSpec, newSpec);
+
+  const breaking = findings.filter(
+    (finding) => finding.severity === "BREAKING"
   );
 
-  const newSpec = YAML.parse(
-    readFileSync(afterPath, "utf8")
+  const warnings = findings.filter(
+    (finding) => finding.severity === "WARNING"
   );
 
-  const removedEndpoints = detectRemovedEndpoints(
-    oldSpec,
-    newSpec
-  );
+  console.log("\nAPI Contract Analysis");
+  console.log("=====================");
+  console.log(`Breaking changes: ${breaking.length}`);
+  console.log(`Warnings: ${warnings.length}`);
 
-  const removedResponseFields = detectRemovedResponseFields(
-    oldSpec,
-    newSpec
-  );
-
-  console.log(
-    `Removed endpoints: ${removedEndpoints.length}`
-  );
-
-  for (const endpoint of removedEndpoints) {
-    console.log(`- ${endpoint}`);
-  }
-
-  console.log(
-    `Removed response fields: ${removedResponseFields.length}`
-  );
-
-  for (const change of removedResponseFields) {
-    console.log(`- ${change.endpoint} [${change.statusCode}] ` + `Removed field: ${change.field}`);
-  }
-
-  const typeChanges = detectResponseTypeChanges(
-    oldSpec,
-    newSpec
-  );
-
-  console.log(`Response type changes: ${typeChanges.length}`);
-
-  for (const change of typeChanges) {
+  for (const finding of findings) {
     console.log(
-      `- ${change.endpoint} [${change.statusCode}] ` +
-      `Field: ${change.field} ` +
-      `(${change.oldType} → ${change.newType})`
+      `\n[${finding.severity}] ${finding.endpoint}`
     );
-  }
 
-  const requiredFields = detectNewRequiredRequestFields(
-    oldSpec,
-    newSpec
-  );
+    console.log(`  ${finding.message}`);
 
-  console.log(`New required request fields: ${requiredFields.length}`);
-
-  for (const change of requiredFields) {
-    console.log(
-      `- ${change.endpoint} [${change.mediaType}] ` +
-      `New required field: ${change.field}`
-    );
-  }
-
-  const removedStatusCodes = detectRemovedResponseStatusCodes(
-    oldSpec,
-    newSpec
-  );
-
-  console.log(`Removed response status codes: ${removedStatusCodes.length}`);
-
-  for (const change of removedStatusCodes) {
-    console.log(
-      `- ${change.endpoint} Removed status code: ${change.statusCode}`
-    );
+    for (const [key, value] of Object.entries(finding.details)) {
+      console.log(`  ${key}: ${value}`);
+    }
   }
 }
 
-try {
-  main();
-} catch (error) {
+main().catch((error: unknown) => {
   console.error(
-    error instanceof Error ? error.message : error
+    error instanceof Error ? error.message : String(error)
   );
-
   process.exitCode = 1;
-}
+});
