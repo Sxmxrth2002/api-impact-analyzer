@@ -83,10 +83,7 @@ export function detectRemovedEndpoints(oldSpec: OpenApiSpec, newSpec: OpenApiSpe
     return removedEndpoints;
 }
 
-export function detectRemovedResponseFields(
-  oldSpec: OpenApiSpec,
-  newSpec: OpenApiSpec
-): ResponseFieldChange[] {
+export function detectRemovedResponseFields(oldSpec: OpenApiSpec, newSpec: OpenApiSpec): ResponseFieldChange[] {
   const changes: ResponseFieldChange[] = [];
 
   const oldPaths = oldSpec.paths ?? {};
@@ -140,10 +137,7 @@ export function detectRemovedResponseFields(
   return changes;
 }
 
-export function detectResponseTypeChanges(
-  oldSpec: OpenApiSpec,
-  newSpec: OpenApiSpec
-): ResponseTypeChange[] {
+export function detectResponseTypeChanges(oldSpec: OpenApiSpec, newSpec: OpenApiSpec): ResponseTypeChange[] {
   const changes: ResponseTypeChange[] = [];
 
   const oldPaths = oldSpec.paths ?? {};
@@ -207,10 +201,7 @@ export function detectResponseTypeChanges(
   return changes;
 }
 
-export function detectNewRequiredRequestFields(
-  oldSpec: OpenApiSpec,
-  newSpec: OpenApiSpec
-): RequiredRequestFieldChange[] {
+export function detectNewRequiredRequestFields(oldSpec: OpenApiSpec, newSpec: OpenApiSpec): RequiredRequestFieldChange[] {
   const changes: RequiredRequestFieldChange[] = [];
 
   const oldPaths = oldSpec.paths ?? {};
@@ -257,10 +248,7 @@ export function detectNewRequiredRequestFields(
   return changes;
 }
 
-export function detectRemovedResponseStatusCodes(
-  oldSpec: OpenApiSpec,
-  newSpec: OpenApiSpec
-): RemovedStatusCodeChange[] {
+export function detectRemovedResponseStatusCodes(oldSpec: OpenApiSpec, newSpec: OpenApiSpec): RemovedStatusCodeChange[] {
   const changes: RemovedStatusCodeChange[] = [];
 
   const oldPaths = oldSpec.paths ?? {};

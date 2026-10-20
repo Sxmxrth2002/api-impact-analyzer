@@ -1,8 +1,6 @@
 import SwaggerParser from "@apidevtools/swagger-parser";
 
-export async function loadOpenAPISpec(
-  filePath: string
-): Promise<Record<string, unknown>> {
+export async function loadOpenAPISpec(filePath: string): Promise<Record<string, unknown>> {
   try {
     const api = await SwaggerParser.validate(filePath);
 
