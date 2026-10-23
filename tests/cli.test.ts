@@ -1,4 +1,3 @@
-
 import { describe, it, expect } from "vitest";
 import { spawnSync } from "node:child_process";
 
@@ -9,7 +8,7 @@ function runCLI(args: string[]) {
     {
       encoding: "utf8",
       cwd: process.cwd(),
-    }
+    },
   );
 }
 
@@ -19,9 +18,12 @@ describe("CLI integration tests", () => {
 
   it("outputs valid JSON with expected findings", () => {
     const result = runCLI([
-      "--before", before,
-      "--after", after,
-      "--format", "json",
+      "--before",
+      before,
+      "--after",
+      after,
+      "--format",
+      "json",
     ]);
 
     expect(result.status).toBe(2);
@@ -41,9 +43,12 @@ describe("CLI integration tests", () => {
 
   it("returns exit code 0 for identical specifications", () => {
     const result = runCLI([
-      "--before", before,
-      "--after", before,
-      "--format", "json",
+      "--before",
+      before,
+      "--after",
+      before,
+      "--format",
+      "json",
     ]);
 
     expect(result.status).toBe(0);
@@ -55,36 +60,30 @@ describe("CLI integration tests", () => {
   });
 
   it("returns exit code 1 for missing files", () => {
-    const result = runCLI([
-      "--before", "missing.yaml",
-      "--after", after,
-    ]);
+    const result = runCLI(["--before", "missing.yaml", "--after", after]);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain(
-      "Invalid OpenAPI specification"
-    );
+    expect(result.stderr).toContain("Invalid OpenAPI specification");
   });
 
   it("rejects unsupported output formats", () => {
     const result = runCLI([
-      "--before", before,
-      "--after", after,
-      "--format", "xml",
+      "--before",
+      before,
+      "--after",
+      after,
+      "--format",
+      "xml",
     ]);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain(
-      "Format must be 'text' or 'json'"
-    );
+    expect(result.stderr).toContain("Format must be 'text' or 'json'");
   });
 
   it("rejects missing required arguments", () => {
     const result = runCLI([]);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain(
-      "Missing argument: --before"
-    );
+    expect(result.stderr).toContain("Missing argument: --before");
   });
 });

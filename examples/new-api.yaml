@@ -21,7 +21,7 @@ paths:
                 email:
                   type: string
       responses:
-        '201':
+        "201":
           description: User created
 
   /users/{id}:
@@ -33,12 +33,12 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
+        "200":
           description: User details
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                $ref: "#/components/schemas/User"
 
 components:
   schemas:

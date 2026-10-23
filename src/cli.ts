@@ -47,19 +47,15 @@ async function main(): Promise<void> {
 
   const findings = analyzeContract(oldSpec, newSpec);
 
-  const durationMs = Number(
-    (performance.now() - start).toFixed(2)
-  );
+  const durationMs = Number((performance.now() - start).toFixed(2));
 
   const report: AnalysisReport = {
     summary: {
       total: findings.length,
-      breaking: findings.filter(
-        (finding) => finding.severity === "BREAKING"
-      ).length,
-      warnings: findings.filter(
-        (finding) => finding.severity === "WARNING"
-      ).length,
+      breaking: findings.filter((finding) => finding.severity === "BREAKING")
+        .length,
+      warnings: findings.filter((finding) => finding.severity === "WARNING")
+        .length,
     },
     findings,
     durationMs,
@@ -74,9 +70,7 @@ async function main(): Promise<void> {
     console.log(`Warnings: ${report.summary.warnings}`);
 
     for (const finding of findings) {
-      console.log(
-        `\n[${finding.severity}] ${finding.endpoint}`
-      );
+      console.log(`\n[${finding.severity}] ${finding.endpoint}`);
       console.log(`  ${finding.message}`);
 
       for (const [key, value] of Object.entries(finding.details)) {
@@ -92,9 +86,7 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  console.error(
-    error instanceof Error ? error.message : String(error)
-  );
+  console.error(error instanceof Error ? error.message : String(error));
 
   process.exitCode = 1;
 });

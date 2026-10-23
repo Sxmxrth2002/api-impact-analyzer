@@ -5,9 +5,20 @@ export interface MatchedEndpoint {
   path: string;
 }
 
-const HTTP_METHODS = ["get", "post", "put", "patch", "delete", "head", "options"] as const;
+const HTTP_METHODS = [
+  "get",
+  "post",
+  "put",
+  "patch",
+  "delete",
+  "head",
+  "options",
+] as const;
 
-export function matchEndpoint( requestPath: string, openApiPath: string ): boolean {
+export function matchEndpoint(
+  requestPath: string,
+  openApiPath: string,
+): boolean {
   const requestSegments = requestPath.split("/").filter(Boolean);
   const apiSegments = openApiPath.split("/").filter(Boolean);
 
@@ -32,7 +43,10 @@ export function matchEndpoint( requestPath: string, openApiPath: string ): boole
   return true;
 }
 
-function getRequestPath( requestUrl: string,serverUrl: string ): string | undefined {
+function getRequestPath(
+  requestUrl: string,
+  serverUrl: string,
+): string | undefined {
   try {
     const request = new URL(requestUrl);
     const server = new URL(serverUrl);
@@ -43,7 +57,10 @@ function getRequestPath( requestUrl: string,serverUrl: string ): string | undefi
 
     const basePath = server.pathname.replace(/\/+$/, "");
 
-    if (basePath && request.pathname !== basePath && !request.pathname.startsWith(basePath + "/")
+    if (
+      basePath &&
+      request.pathname !== basePath &&
+      !request.pathname.startsWith(basePath + "/")
     ) {
       return undefined;
     }
@@ -60,14 +77,15 @@ function getPathSpecificity(path: string): number {
   return path
     .split("/")
     .filter(Boolean)
-    .filter(
-      (segment) =>
-        !(segment.startsWith("{") && segment.endsWith("}"))
-    )
+    .filter((segment) => !(segment.startsWith("{") && segment.endsWith("}")))
     .length;
 }
 
-export function findMatchingEndpoint( method: string, url: string, spec: OpenAPIV3.Document ): MatchedEndpoint | undefined {
+export function findMatchingEndpoint(
+  method: string,
+  url: string,
+  spec: OpenAPIV3.Document,
+): MatchedEndpoint | undefined {
   const normalizedMethod = method.toLowerCase();
 
   if (!HTTP_METHODS.some((m) => m === normalizedMethod)) {
@@ -75,9 +93,7 @@ export function findMatchingEndpoint( method: string, url: string, spec: OpenAPI
   }
 
   // OpenAPI 3 defaults to "/" when servers is omitted.
-  const servers = spec.servers?.length
-    ? spec.servers
-    : [{ url: "/" }];
+  const servers = spec.servers?.length ? spec.servers : [{ url: "/" }];
 
   for (const server of servers) {
     const requestPath =
@@ -96,28 +112,27 @@ export function findMatchingEndpoint( method: string, url: string, spec: OpenAPI
     for (const [openApiPath, pathItem] of Object.entries(spec.paths)) {
       const matchingPaths = Object.entries(spec.paths)
         .filter(([openApiPath, pathItem]) => {
-            if (!pathItem) return false;
+          if (!pathItem) return false;
 
-            if (!matchEndpoint(requestPath, openApiPath)) {
+          if (!matchEndpoint(requestPath, openApiPath)) {
             return false;
-            }
+          }
 
-            const operation =
-            pathItem[normalizedMethod as keyof typeof pathItem];
+          const operation = pathItem[normalizedMethod as keyof typeof pathItem];
 
-            return Boolean(operation);
+          return Boolean(operation);
         })
         .sort(
-            ([pathA], [pathB]) =>
-            getPathSpecificity(pathB) - getPathSpecificity(pathA)
+          ([pathA], [pathB]) =>
+            getPathSpecificity(pathB) - getPathSpecificity(pathA),
         );
 
-        if (matchingPaths.length > 0) {
-            return {
-                method: normalizedMethod.toUpperCase(),
-                path: matchingPaths[0][0],
-            };
-        }
+      if (matchingPaths.length > 0) {
+        return {
+          method: normalizedMethod.toUpperCase(),
+          path: matchingPaths[0][0],
+        };
+      }
     }
   }
 

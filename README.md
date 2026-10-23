@@ -1,4 +1,3 @@
-
 # API Impact Analyzer
 
 A TypeScript CLI that detects potentially breaking changes

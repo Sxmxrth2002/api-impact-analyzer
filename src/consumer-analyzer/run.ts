@@ -1,7 +1,5 @@
-import { scanConsumer } from "./scanner.js";
+import { trackResponseFields } from "./response-tracker.js";
 
-const results = scanConsumer(
-  "examples/consumer-service/userClient.ts"
-);
+const results = trackResponseFields("examples/consumer-service/userClient.ts");
 
 console.log(JSON.stringify(results, null, 2));

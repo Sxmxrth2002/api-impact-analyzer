@@ -1,4 +1,3 @@
-
 import { describe, it, expect } from "vitest";
 import { loadOpenAPISpec } from "../src/analyzer/spec-loader.js";
 import { analyzeContract } from "../src/analyzer/findings.js";
@@ -26,14 +25,11 @@ describe("Analysis performance baseline", () => {
     durations.sort((a, b) => a - b);
 
     const average =
-      durations.reduce((sum, value) => sum + value, 0) /
-      iterations;
+      durations.reduce((sum, value) => sum + value, 0) / iterations;
 
     const p95 = durations[Math.ceil(iterations * 0.95) - 1];
 
-    console.log(
-      `\nContract analysis benchmark (${iterations} runs)`
-    );
+    console.log(`\nContract analysis benchmark (${iterations} runs)`);
     console.log(`Average: ${average.toFixed(3)} ms`);
     console.log(`P95: ${p95.toFixed(3)} ms`);
 

@@ -24,9 +24,7 @@ describe("Consumer API Scanner", () => {
 
     expect(results).toHaveLength(1);
     expect(results[0].method).toBe("GET");
-    expect(results[0].url).toBe(
-      "https://api.example.com/users/123"
-    );
+    expect(results[0].url).toBe("https://api.example.com/users/123");
   });
 
   it("detects fetch POST requests", () => {
@@ -85,9 +83,7 @@ describe("Consumer API Scanner", () => {
   });
 
   it("records file path and line number", () => {
-    const results = scanCode(
-      'fetch("https://api.example.com/users");'
-    );
+    const results = scanCode('fetch("https://api.example.com/users");');
 
     expect(results[0].file).toContain("consumer.ts");
     expect(results[0].line).toBe(1);

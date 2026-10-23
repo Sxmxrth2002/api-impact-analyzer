@@ -1,31 +1,29 @@
-
 import { describe, it, expect } from "vitest";
-import { 
-  detectRemovedEndpoints, 
-  detectRemovedResponseFields, 
-  detectResponseTypeChanges, 
-  detectNewRequiredRequestFields, 
-  detectRemovedResponseStatusCodes 
+import {
+  detectRemovedEndpoints,
+  detectRemovedResponseFields,
+  detectResponseTypeChanges,
+  detectNewRequiredRequestFields,
+  detectRemovedResponseStatusCodes,
 } from "../src/analyzer/diff.js";
 
 describe("OpenAPI Contract Diff Engine", () => {
-
   it("detects a removed endpoint", () => {
     const oldSpec = {
       paths: {
         "/users": {
           get: {},
-          post: {}
-        }
-      }
+          post: {},
+        },
+      },
     };
 
     const newSpec = {
       paths: {
         "/users": {
-          get: {}
-        }
-      }
+          get: {},
+        },
+      },
     };
 
     const result = detectRemovedEndpoints(oldSpec, newSpec);
@@ -37,9 +35,9 @@ describe("OpenAPI Contract Diff Engine", () => {
     const spec = {
       paths: {
         "/users": {
-          get: {}
-        }
-      }
+          get: {},
+        },
+      },
     };
 
     expect(detectRemovedEndpoints(spec, spec)).toEqual([]);
@@ -49,18 +47,18 @@ describe("OpenAPI Contract Diff Engine", () => {
     const oldSpec = {
       paths: {
         "/users": {
-          get: {}
-        }
-      }
+          get: {},
+        },
+      },
     };
 
     const newSpec = {
       paths: {
         "/users": {
           get: {},
-          post: {}
-        }
-      }
+          post: {},
+        },
+      },
     };
 
     expect(detectRemovedEndpoints(oldSpec, newSpec)).toEqual([]);
@@ -71,20 +69,20 @@ describe("OpenAPI Contract Diff Engine", () => {
       paths: {
         "/users": {
           get: {},
-          delete: {}
+          delete: {},
         },
         "/orders": {
-          post: {}
-        }
-      }
+          post: {},
+        },
+      },
     };
 
     const newSpec = {
       paths: {
         "/users": {
-          get: {}
-        }
-      }
+          get: {},
+        },
+      },
     };
 
     const result = detectRemovedEndpoints(oldSpec, newSpec);
@@ -104,13 +102,13 @@ describe("OpenAPI Contract Diff Engine", () => {
         "/users": {
           get: {},
           post: {},
-          delete: {}
-        }
-      }
+          delete: {},
+        },
+      },
     };
 
     const newSpec = {
-      paths: {}
+      paths: {},
     };
 
     const result = detectRemovedEndpoints(oldSpec, newSpec);
@@ -121,112 +119,109 @@ describe("OpenAPI Contract Diff Engine", () => {
     expect(result).toContain("DELETE /users");
   });
 
-
   it("detects a removed response field", () => {
-  const oldSpec = {
+    const oldSpec = {
       paths: {
-      "/users": {
+        "/users": {
           get: {
-          responses: {
+            responses: {
               "200": {
-              content: {
+                content: {
                   "application/json": {
-                  schema: {
+                    schema: {
                       type: "object",
                       properties: {
-                      id: { type: "integer" },
-                      name: { type: "string" },
+                        id: { type: "integer" },
+                        name: { type: "string" },
                       },
+                    },
                   },
-                  },
+                },
               },
-              },
+            },
           },
-          },
+        },
       },
-      },
-  };
+    };
 
-  const newSpec = structuredClone(oldSpec);
-  delete (newSpec.paths["/users"].get.responses["200"]
-      .content["application/json"].schema.properties as
-      Record<string, unknown>).name;
+    const newSpec = structuredClone(oldSpec);
+    delete (
+      newSpec.paths["/users"].get.responses["200"].content["application/json"]
+        .schema.properties as Record<string, unknown>
+    ).name;
 
-  const result = detectRemovedResponseFields(oldSpec, newSpec);
+    const result = detectRemovedResponseFields(oldSpec, newSpec);
 
-  expect(result).toEqual([
+    expect(result).toEqual([
       {
-      endpoint: "GET /users",
-      statusCode: "200",
-      mediaType: "application/json",
-      field: "name",
+        endpoint: "GET /users",
+        statusCode: "200",
+        mediaType: "application/json",
+        field: "name",
       },
-  ]);
+    ]);
   });
 
   it("does not flag newly added response fields", () => {
-  const oldSpec = {
+    const oldSpec = {
       paths: {
-      "/users": {
+        "/users": {
           get: {
-          responses: {
+            responses: {
               "200": {
-              content: {
+                content: {
                   "application/json": {
-                  schema: {
+                    schema: {
                       type: "object",
                       properties: {
-                      id: { type: "integer" },
+                        id: { type: "integer" },
                       },
+                    },
                   },
-                  },
+                },
               },
-              },
+            },
           },
-          },
+        },
       },
-      },
-  };
+    };
 
-  const newSpec = structuredClone(oldSpec);
-  Object.assign(
-      newSpec.paths["/users"].get.responses["200"]
-      .content["application/json"].schema.properties,
-      { name: { type: "string" } }
-  );
+    const newSpec = structuredClone(oldSpec);
+    Object.assign(
+      newSpec.paths["/users"].get.responses["200"].content["application/json"]
+        .schema.properties,
+      { name: { type: "string" } },
+    );
 
-  expect(detectRemovedResponseFields(oldSpec, newSpec)).toEqual([]);
+    expect(detectRemovedResponseFields(oldSpec, newSpec)).toEqual([]);
   });
 
   it("does not report fields from removed endpoints", () => {
-  const oldSpec = {
+    const oldSpec = {
       paths: {
-      "/users": {
+        "/users": {
           get: {
-          responses: {
+            responses: {
               "200": {
-              content: {
+                content: {
                   "application/json": {
-                  schema: {
+                    schema: {
                       type: "object",
                       properties: {
-                      name: { type: "string" },
+                        name: { type: "string" },
                       },
+                    },
                   },
-                  },
+                },
               },
-              },
+            },
           },
-          },
+        },
       },
-      },
-  };
+    };
 
-  expect(
-      detectRemovedResponseFields(oldSpec, { paths: {} })
-  ).toEqual([]);
+    expect(detectRemovedResponseFields(oldSpec, { paths: {} })).toEqual([]);
   });
-
 
   it("detects a response field type change", () => {
     const oldSpec = {
@@ -254,8 +249,9 @@ describe("OpenAPI Contract Diff Engine", () => {
 
     const newSpec = structuredClone(oldSpec);
 
-    newSpec.paths["/users"].get.responses["200"]
-      .content["application/json"].schema.properties.id.type = "string";
+    newSpec.paths["/users"].get.responses["200"].content[
+      "application/json"
+    ].schema.properties.id.type = "string";
 
     const result = detectResponseTypeChanges(oldSpec, newSpec);
 
@@ -325,9 +321,8 @@ describe("OpenAPI Contract Diff Engine", () => {
     const newSpec = structuredClone(oldSpec);
 
     delete (
-      newSpec.paths["/users"].get.responses["200"]
-        .content["application/json"].schema.properties as
-        Record<string, unknown>
+      newSpec.paths["/users"].get.responses["200"].content["application/json"]
+        .schema.properties as Record<string, unknown>
     ).id;
 
     expect(detectResponseTypeChanges(oldSpec, newSpec)).toEqual([]);
@@ -360,8 +355,9 @@ describe("OpenAPI Contract Diff Engine", () => {
 
     const newSpec = structuredClone(oldSpec);
 
-    const properties = newSpec.paths["/users"].get.responses["200"]
-      .content["application/json"].schema.properties;
+    const properties =
+      newSpec.paths["/users"].get.responses["200"].content["application/json"]
+        .schema.properties;
 
     properties.id.type = "string";
     properties.active.type = "integer";
@@ -369,12 +365,8 @@ describe("OpenAPI Contract Diff Engine", () => {
     const result = detectResponseTypeChanges(oldSpec, newSpec);
 
     expect(result).toHaveLength(2);
-    expect(result.map(change => change.field)).toEqual([
-      "id",
-      "active",
-    ]);
+    expect(result.map((change) => change.field)).toEqual(["id", "active"]);
   });
-
 
   it("detects a newly required request field", () => {
     const oldSpec = {
@@ -397,12 +389,11 @@ describe("OpenAPI Contract Diff Engine", () => {
     };
 
     const newSpec = structuredClone(oldSpec);
-    newSpec.paths["/users"].post.requestBody
-      .content["application/json"].schema.required.push("email");
+    newSpec.paths["/users"].post.requestBody.content[
+      "application/json"
+    ].schema.required.push("email");
 
-    expect(
-      detectNewRequiredRequestFields(oldSpec, newSpec)
-    ).toEqual([
+    expect(detectNewRequiredRequestFields(oldSpec, newSpec)).toEqual([
       {
         endpoint: "POST /users",
         mediaType: "application/json",
@@ -437,14 +428,12 @@ describe("OpenAPI Contract Diff Engine", () => {
     const newSpec = structuredClone(oldSpec);
 
     Object.assign(
-      newSpec.paths["/users"].post.requestBody
-        .content["application/json"].schema.properties,
-      { email: { type: "string" } }
+      newSpec.paths["/users"].post.requestBody.content["application/json"]
+        .schema.properties,
+      { email: { type: "string" } },
     );
 
-    expect(
-      detectNewRequiredRequestFields(oldSpec, newSpec)
-    ).toEqual([]);
+    expect(detectNewRequiredRequestFields(oldSpec, newSpec)).toEqual([]);
   });
 
   it("detects a removed response status code", () => {
@@ -473,9 +462,7 @@ describe("OpenAPI Contract Diff Engine", () => {
       },
     };
 
-    expect(
-      detectRemovedResponseStatusCodes(oldSpec, newSpec)
-    ).toEqual([
+    expect(detectRemovedResponseStatusCodes(oldSpec, newSpec)).toEqual([
       {
         endpoint: "GET /users",
         statusCode: "404",
@@ -509,9 +496,7 @@ describe("OpenAPI Contract Diff Engine", () => {
       },
     };
 
-    expect(
-      detectRemovedResponseStatusCodes(oldSpec, newSpec)
-    ).toEqual([]);
+    expect(detectRemovedResponseStatusCodes(oldSpec, newSpec)).toEqual([]);
   });
 
   it("does not double-report status codes from removed endpoints", () => {
@@ -527,9 +512,8 @@ describe("OpenAPI Contract Diff Engine", () => {
       },
     };
 
-    expect(
-      detectRemovedResponseStatusCodes(oldSpec, { paths: {} })
-    ).toEqual([]);
+    expect(detectRemovedResponseStatusCodes(oldSpec, { paths: {} })).toEqual(
+      [],
+    );
   });
-
 });

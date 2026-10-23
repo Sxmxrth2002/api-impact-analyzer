@@ -1,4 +1,10 @@
-import { Project, SyntaxKind, Node, type CallExpression, type ObjectLiteralExpression } from "ts-morph";
+import {
+  Project,
+  SyntaxKind,
+  Node,
+  type CallExpression,
+  type ObjectLiteralExpression,
+} from "ts-morph";
 
 export interface ApiCall {
   method: string;
@@ -8,10 +14,19 @@ export interface ApiCall {
 }
 
 const HTTP_METHODS = new Set([
-  "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS",
+  "GET",
+  "POST",
+  "PUT",
+  "PATCH",
+  "DELETE",
+  "HEAD",
+  "OPTIONS",
 ]);
 
-function getStringProperty(object: ObjectLiteralExpression, name: string): string | undefined {
+function getStringProperty(
+  object: ObjectLiteralExpression,
+  name: string,
+): string | undefined {
   const property = object.getProperty(name);
 
   if (!property || !Node.isPropertyAssignment(property)) {
@@ -25,7 +40,9 @@ function getStringProperty(object: ObjectLiteralExpression, name: string): strin
     : undefined;
 }
 
-function extractAxiosCall(call: CallExpression): { method: string; url: string } | undefined {
+function extractAxiosCall(
+  call: CallExpression,
+): { method: string; url: string } | undefined {
   const expression = call.getExpression();
   const args = call.getArguments();
 
@@ -61,9 +78,7 @@ function extractAxiosCall(call: CallExpression): { method: string; url: string }
       return undefined;
     }
 
-    const method = (
-      getStringProperty(config, "method") ?? "GET"
-    ).toUpperCase();
+    const method = (getStringProperty(config, "method") ?? "GET").toUpperCase();
 
     const url = getStringProperty(config, "url");
 
@@ -83,9 +98,7 @@ export function scanConsumer(filePath: string): ApiCall[] {
 
   const apiCalls: ApiCall[] = [];
 
-  const calls = sourceFile.getDescendantsOfKind(
-    SyntaxKind.CallExpression
-  );
+  const calls = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression);
 
   for (const call of calls) {
     const expression = call.getExpression();
@@ -94,34 +107,32 @@ export function scanConsumer(filePath: string): ApiCall[] {
     let result: { method: string; url: string } | undefined;
 
     if (expression.getText() === "fetch") {
-        const urlArg = args[0];
+      const urlArg = args[0];
 
-        if (!urlArg || !Node.isStringLiteral(urlArg)) {
+      if (!urlArg || !Node.isStringLiteral(urlArg)) {
         continue;
-        }
+      }
 
-        let method = "GET";
-        const options = args[1];
+      let method = "GET";
+      const options = args[1];
 
-        if (options && Node.isObjectLiteralExpression(options)) {
-        method = (
-            getStringProperty(options, "method") ?? "GET"
-        ).toUpperCase();
-        }
+      if (options && Node.isObjectLiteralExpression(options)) {
+        method = (getStringProperty(options, "method") ?? "GET").toUpperCase();
+      }
 
-        result = { method, url: urlArg.getLiteralValue() };
+      result = { method, url: urlArg.getLiteralValue() };
     } else {
-        result = extractAxiosCall(call);
+      result = extractAxiosCall(call);
     }
 
     if (!result) continue;
 
     apiCalls.push({
-        ...result,
-        file: sourceFile.getFilePath(),
-        line: call.getStartLineNumber(),
+      ...result,
+      file: sourceFile.getFilePath(),
+      line: call.getStartLineNumber(),
     });
-    }
+  }
 
   return apiCalls;
 }

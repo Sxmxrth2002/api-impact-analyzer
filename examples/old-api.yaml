@@ -20,9 +20,9 @@ paths:
                 email:
                   type: string
       responses:
-        '201':
+        "201":
           description: User created
-        '400':
+        "400":
           description: Invalid request
 
   /users/{id}:
@@ -34,13 +34,13 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
+        "200":
           description: User details
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
-        '404':
+                $ref: "#/components/schemas/User"
+        "404":
           description: User not found
 
 components:

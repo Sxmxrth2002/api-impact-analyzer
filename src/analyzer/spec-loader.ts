@@ -1,6 +1,8 @@
 import SwaggerParser from "@apidevtools/swagger-parser";
 
-export async function loadOpenAPISpec(filePath: string): Promise<Record<string, unknown>> {
+export async function loadOpenAPISpec(
+  filePath: string,
+): Promise<Record<string, unknown>> {
   try {
     const api = await SwaggerParser.validate(filePath);
 
@@ -12,11 +14,8 @@ export async function loadOpenAPISpec(filePath: string): Promise<Record<string, 
 
     return resolved as Record<string, unknown>;
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : String(error);
+    const message = error instanceof Error ? error.message : String(error);
 
-    throw new Error(
-      `Invalid OpenAPI specification (${filePath}): ${message}`
-    );
+    throw new Error(`Invalid OpenAPI specification (${filePath}): ${message}`);
   }
 }

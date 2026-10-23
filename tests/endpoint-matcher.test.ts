@@ -14,8 +14,8 @@ describe("Endpoint Matcher", () => {
     expect(
       matchEndpoint(
         "/users/123/orders/456",
-        "/users/{userId}/orders/{orderId}"
-      )
+        "/users/{userId}/orders/{orderId}",
+      ),
     ).toBe(true);
   });
 

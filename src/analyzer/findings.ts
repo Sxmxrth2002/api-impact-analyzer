@@ -1,4 +1,3 @@
-
 import {
   detectRemovedEndpoints,
   detectRemovedResponseFields,
@@ -28,7 +27,7 @@ type OpenAPISpec = Parameters<typeof detectRemovedEndpoints>[0];
 
 export function analyzeContract(
   oldSpec: OpenAPISpec,
-  newSpec: OpenAPISpec
+  newSpec: OpenAPISpec,
 ): Finding[] {
   const findings: Finding[] = [];
 

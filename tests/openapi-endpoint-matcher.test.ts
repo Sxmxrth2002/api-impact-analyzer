@@ -29,11 +29,7 @@ const spec: OpenAPIV3.Document = {
 describe("OpenAPI Endpoint Matching", () => {
   it("matches a GET request with a path parameter", () => {
     expect(
-      findMatchingEndpoint(
-        "GET",
-        "https://api.example.com/users/123",
-        spec
-      )
+      findMatchingEndpoint("GET", "https://api.example.com/users/123", spec),
     ).toEqual({
       method: "GET",
       path: "/users/{id}",
@@ -42,11 +38,7 @@ describe("OpenAPI Endpoint Matching", () => {
 
   it("matches POST requests", () => {
     expect(
-      findMatchingEndpoint(
-        "POST",
-        "https://api.example.com/users",
-        spec
-      )
+      findMatchingEndpoint("POST", "https://api.example.com/users", spec),
     ).toEqual({
       method: "POST",
       path: "/users",
@@ -58,44 +50,32 @@ describe("OpenAPI Endpoint Matching", () => {
       findMatchingEndpoint(
         "GET",
         "https://api.example.com/users/123?expand=true",
-        spec
-      )?.path
+        spec,
+      )?.path,
     ).toBe("/users/{id}");
   });
 
   it("rejects an unsupported HTTP method", () => {
     expect(
-      findMatchingEndpoint(
-        "DELETE",
-        "https://api.example.com/users/123",
-        spec
-      )
+      findMatchingEndpoint("DELETE", "https://api.example.com/users/123", spec),
     ).toBeUndefined();
   });
 
   it("rejects unknown endpoints", () => {
     expect(
-      findMatchingEndpoint(
-        "GET",
-        "https://api.example.com/orders/123",
-        spec
-      )
+      findMatchingEndpoint("GET", "https://api.example.com/orders/123", spec),
     ).toBeUndefined();
   });
 
   it("rejects malformed URLs", () => {
-    expect(
-      findMatchingEndpoint("GET", "not-a-url", spec)
-    ).toBeUndefined();
+    expect(findMatchingEndpoint("GET", "not-a-url", spec)).toBeUndefined();
   });
 });
 
 describe("OpenAPI Server Validation", () => {
   const serverSpec: OpenAPIV3.Document = {
     ...spec,
-    servers: [
-      { url: "https://api.example.com/v1" },
-    ],
+    servers: [{ url: "https://api.example.com/v1" }],
   };
 
   it("matches the correct host and base path", () => {
@@ -103,8 +83,8 @@ describe("OpenAPI Server Validation", () => {
       findMatchingEndpoint(
         "GET",
         "https://api.example.com/v1/users/123",
-        serverSpec
-      )
+        serverSpec,
+      ),
     ).toEqual({
       method: "GET",
       path: "/users/{id}",
@@ -116,8 +96,8 @@ describe("OpenAPI Server Validation", () => {
       findMatchingEndpoint(
         "GET",
         "https://payments.example.com/v1/users/123",
-        serverSpec
-      )
+        serverSpec,
+      ),
     ).toBeUndefined();
   });
 
@@ -126,8 +106,8 @@ describe("OpenAPI Server Validation", () => {
       findMatchingEndpoint(
         "GET",
         "https://api.example.com/v2/users/123",
-        serverSpec
-      )
+        serverSpec,
+      ),
     ).toBeUndefined();
   });
 
@@ -136,8 +116,8 @@ describe("OpenAPI Server Validation", () => {
       findMatchingEndpoint(
         "GET",
         "https://api.example.com/v1extra/users/123",
-        serverSpec
-      )
+        serverSpec,
+      ),
     ).toBeUndefined();
   });
 });
@@ -168,8 +148,8 @@ describe("Endpoint Specificity", () => {
       findMatchingEndpoint(
         "GET",
         "https://api.example.com/users/me",
-        ambiguousSpec
-      )?.path
+        ambiguousSpec,
+      )?.path,
     ).toBe("/users/me");
   });
 
@@ -178,8 +158,8 @@ describe("Endpoint Specificity", () => {
       findMatchingEndpoint(
         "GET",
         "https://api.example.com/users/123",
-        ambiguousSpec
-      )?.path
+        ambiguousSpec,
+      )?.path,
     ).toBe("/users/{id}");
   });
 
@@ -188,8 +168,8 @@ describe("Endpoint Specificity", () => {
       findMatchingEndpoint(
         "POST",
         "https://api.example.com/users/me",
-        ambiguousSpec
-      )
+        ambiguousSpec,
+      ),
     ).toBeUndefined();
   });
 });
