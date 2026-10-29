@@ -63,3 +63,10 @@ export async function getUserDirectAxios() {
 
   return data;
 }
+
+export async function createUser() {
+  await axios.post("https://api.example.com/users", {
+    name: "John",
+    age: 25,
+  });
+}
