@@ -13,6 +13,13 @@ export interface ApiCall {
   line: number;
 }
 
+export interface EndpointConsumerImpact {
+  file: string;
+  line: number;
+  method: string;
+  url: string;
+}
+
 const HTTP_METHODS = new Set([
   "GET",
   "POST",

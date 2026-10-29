@@ -4,6 +4,7 @@ import {
   SyntaxKind,
   type Identifier,
   type VariableDeclaration,
+  type BindingElement,
 } from "ts-morph";
 
 export interface ResponseFieldUsage {
@@ -27,10 +28,16 @@ function unwrapAwait(node: Node): Node {
 // Resolve an identifier to its actual variable declaration.
 function resolveDeclaration(
   identifier: Identifier,
-): VariableDeclaration | undefined {
+): VariableDeclaration | BindingElement | undefined {
   const symbol = identifier.getSymbol();
 
-  return symbol?.getDeclarations().find(Node.isVariableDeclaration);
+  return symbol
+    ?.getDeclarations()
+    .find(
+      (declaration): declaration is VariableDeclaration | BindingElement =>
+        Node.isVariableDeclaration(declaration) ||
+        Node.isBindingElement(declaration),
+    );
 }
 
 function getFetchRequest(
@@ -116,9 +123,15 @@ export function trackResponseFields(filePath: string): ResponseFieldUsage[] {
   const sourceFile = project.addSourceFileAtPath(filePath);
 
   // Key maps by declaration node, not variable name.
-  const requestVariables = new Map<VariableDeclaration, ApiRequest>();
+  const requestVariables = new Map<
+    VariableDeclaration | BindingElement,
+    ApiRequest
+  >();
 
-  const responseVariables = new Map<VariableDeclaration, ApiRequest>();
+  const responseVariables = new Map<
+    VariableDeclaration | BindingElement,
+    ApiRequest
+  >();
 
   const declarations = sourceFile.getDescendantsOfKind(
     SyntaxKind.VariableDeclaration,
@@ -134,14 +147,14 @@ export function trackResponseFields(filePath: string): ResponseFieldUsage[] {
     }
   }
 
-  // Step 2: Identify parsed API response variables.
+  // Track parsed fetch responses and Axios response.data
   for (const declaration of declarations) {
     const initializer = declaration.getInitializer();
     if (!initializer) continue;
 
     const expression = unwrapAwait(initializer);
 
-    // fetch: const user = await response.json()
+    // Fetch: const user = await response.json()
     if (Node.isCallExpression(expression)) {
       const callee = expression.getExpression();
 
@@ -186,6 +199,72 @@ export function trackResponseFields(filePath: string): ResponseFieldUsage[] {
     }
   }
 
+  // Step 2: Identify parsed API response variables.
+  for (const declaration of declarations) {
+    const nameNode = declaration.getNameNode();
+
+    if (!Node.isObjectBindingPattern(nameNode)) continue;
+
+    const request = getAxiosRequest(declaration);
+
+    if (!request) continue;
+
+    for (const element of nameNode.getElements()) {
+      if (element.getDotDotDotToken()) continue;
+
+      const propertyName = element.getPropertyNameNode();
+      const fieldName = propertyName?.getText() ?? element.getName();
+
+      if (fieldName !== "data") continue;
+
+      const bindingName = element.getNameNode();
+
+      if (!Node.isIdentifier(bindingName)) continue;
+
+      responseVariables.set(element, request);
+    }
+  }
+
+  const destructuredFields: ResponseFieldUsage[] = [];
+
+  for (const declaration of declarations) {
+    const nameNode = declaration.getNameNode();
+    const initializer = declaration.getInitializer();
+
+    if (!Node.isObjectBindingPattern(nameNode)) continue;
+    if (!initializer || !Node.isIdentifier(initializer)) continue;
+
+    // Resolve the source variable's declaration
+    const sourceDeclaration = resolveDeclaration(initializer);
+
+    if (!sourceDeclaration) continue;
+
+    // Check whether this variable contains an API response
+    const request = responseVariables.get(sourceDeclaration);
+
+    if (!request) continue;
+
+    for (const element of nameNode.getElements()) {
+      // Skip rest elements and computed property names for now
+      if (element.getDotDotDotToken()) continue;
+
+      const propertyName = element.getPropertyNameNode();
+
+      if (propertyName && !Node.isIdentifier(propertyName)) {
+        continue;
+      }
+
+      destructuredFields.push({
+        method: request.method,
+        url: request.url,
+        variable: initializer.getText(),
+        field: propertyName?.getText() ?? element.getName(),
+        file: sourceFile.getFilePath(),
+        line: element.getStartLineNumber(),
+      });
+    }
+  }
+
   // Step 3: Identify fields accessed on response variables.
   const results: ResponseFieldUsage[] = [];
 
@@ -214,5 +293,5 @@ export function trackResponseFields(filePath: string): ResponseFieldUsage[] {
     });
   }
 
-  return results;
+  return [...results, ...destructuredFields];
 }

@@ -44,3 +44,22 @@ export async function getUserWithAxios() {
 
   return user;
 }
+
+export async function getUserDetails() {
+  const response = await fetch("https://api.example.com/users/789");
+
+  const user = await response.json();
+
+  const { name, email } = user;
+
+  console.log(name, email);
+}
+
+export async function getUserDirectAxios() {
+  const { data } = await axios.get("https://api.example.com/users/999");
+
+  console.log(data.name);
+  console.log(data.email);
+
+  return data;
+}
