@@ -14,6 +14,7 @@ export interface ImpactReportEntry {
   change: string;
   impactedConsumers: ConsumerImpact[];
   impactedEndpointCalls?: EndpointConsumerImpact[];
+  impactedRequestPayloads?: RequestPayloadImpact[];
 }
 
 export interface ImpactReport {
@@ -24,4 +25,11 @@ export interface ImpactReport {
     impactedConsumerLocations: number;
   };
   entries: ImpactReportEntry[];
+}
+export interface RequestPayloadImpact {
+  file: string;
+  line: number;
+  method: string;
+  url: string;
+  missingField: string;
 }

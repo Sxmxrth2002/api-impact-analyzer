@@ -4,6 +4,7 @@ import { analyzeContract } from "./findings.js";
 import { generateImpactReport } from "./impact-report.js";
 import { trackResponseFields } from "../consumer-analyzer/response-tracker.js";
 import { scanConsumer } from "../consumer-analyzer/scanner.js";
+import { trackRequestPayloads } from "../consumer-analyzer/request-tracker.js";
 
 async function main() {
   // Load OpenAPI specifications
@@ -16,6 +17,7 @@ async function main() {
 
   // Consumer source file
   const consumerFile = path.resolve("examples/consumer-service/userClient.ts");
+  const payloads = trackRequestPayloads(consumerFile);
 
   // Phase 2: Detect response field usage
   const usages = trackResponseFields(consumerFile);
@@ -24,7 +26,7 @@ async function main() {
   const apiCalls = scanConsumer(consumerFile);
 
   // Generate impact report
-  const report = generateImpactReport(findings, usages, apiCalls);
+  const report = generateImpactReport(findings, usages, apiCalls, payloads);
 
   console.log(JSON.stringify(report, null, 2));
 }

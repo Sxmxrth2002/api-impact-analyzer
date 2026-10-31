@@ -5,6 +5,8 @@ import type { ImpactReportEntry, ConsumerImpact } from "./types.js";
 import type { ImpactReport } from "./types.js";
 import type { EndpointConsumerImpact } from "../consumer-analyzer/scanner.js";
 import type { ApiCall } from "../consumer-analyzer/scanner.js";
+import type { RequestPayloadUsage } from "../consumer-analyzer/request-tracker.js";
+import type { RequestPayloadImpact } from "./types.js";
 
 export function matchConsumerImpacts(
   finding: Finding,
@@ -91,10 +93,51 @@ export function matchRemovedEndpointCalls(
   return impactedCalls;
 }
 
+export function matchRequiredRequestFields(
+  finding: Finding,
+  payloads: RequestPayloadUsage[],
+): RequestPayloadImpact[] {
+  if (finding.type !== "REQUEST_FIELD_REQUIRED") return [];
+
+  const [method, endpointPath] = finding.endpoint.split(" ", 2);
+  const requiredField = finding.details.field;
+
+  if (!requiredField) return [];
+
+  const impacts: RequestPayloadImpact[] = [];
+
+  for (const payload of payloads) {
+    if (payload.method.toUpperCase() !== method) continue;
+
+    let consumerPath: string;
+
+    try {
+      consumerPath = new URL(payload.url).pathname;
+    } catch {
+      consumerPath = payload.url.split("?")[0];
+    }
+
+    if (!matchEndpoint(consumerPath, endpointPath)) continue;
+    if (!payload.isComplete) continue;
+    if (payload.fields.includes(requiredField)) continue;
+
+    impacts.push({
+      file: payload.file,
+      line: payload.line,
+      method: payload.method,
+      url: payload.url,
+      missingField: requiredField,
+    });
+  }
+
+  return impacts;
+}
+
 export function generateImpactReport(
   findings: Finding[],
   usages: ResponseFieldUsage[],
   apiCalls: ApiCall[],
+  payloads: RequestPayloadUsage[],
 ): ImpactReport {
   const entries = findings.map((finding) => {
     if (
@@ -115,6 +158,10 @@ export function generateImpactReport(
         finding.type === "ENDPOINT_REMOVED"
           ? matchRemovedEndpointCalls(finding, apiCalls)
           : [],
+      impactedRequestPayloads:
+        finding.type === "REQUEST_FIELD_REQUIRED"
+          ? matchRequiredRequestFields(finding, payloads)
+          : [],
     };
   });
 
@@ -131,7 +178,8 @@ export function generateImpactReport(
         (total, entry) =>
           total +
           entry.impactedConsumers.length +
-          (entry.impactedEndpointCalls?.length ?? 0),
+          (entry.impactedEndpointCalls?.length ?? 0) +
+          (entry.impactedRequestPayloads?.length ?? 0),
         0,
       ),
     },

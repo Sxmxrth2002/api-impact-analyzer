@@ -11,10 +11,15 @@ export interface RequestPayloadUsage {
   file: string;
   line: number;
   fields: string[];
+  isComplete: boolean;
 }
 
-function extractObjectFields(object: ObjectLiteralExpression): string[] {
+function extractObjectFields(object: ObjectLiteralExpression): {
+  fields: string[];
+  isComplete: boolean;
+} {
   const fields: string[] = [];
+  let isComplete = true;
 
   for (const property of object.getProperties()) {
     if (
@@ -22,11 +27,48 @@ function extractObjectFields(object: ObjectLiteralExpression): string[] {
       Node.isShorthandPropertyAssignment(property) ||
       Node.isMethodDeclaration(property)
     ) {
-      fields.push(property.getName());
+      const nameNode = property.getNameNode();
+
+      if (Node.isComputedPropertyName(nameNode)) {
+        isComplete = false;
+      } else {
+        fields.push(property.getName());
+      }
+    } else {
+      // Spread assignments and other unsupported properties.
+      isComplete = false;
     }
   }
 
-  return fields;
+  return { fields, isComplete };
+}
+
+function resolvePayloadFields(node: Node): {
+  fields: string[];
+  isComplete: boolean;
+} | null {
+  if (Node.isObjectLiteralExpression(node)) {
+    return extractObjectFields(node);
+  }
+
+  if (Node.isIdentifier(node)) {
+    const symbol = node.getSymbol();
+    const declaration = symbol
+      ?.getDeclarations()
+      .find(Node.isVariableDeclaration);
+
+    if (!declaration) return null;
+
+    const initializer = declaration.getInitializer();
+
+    if (!initializer || !Node.isObjectLiteralExpression(initializer)) {
+      return null;
+    }
+
+    return extractObjectFields(initializer);
+  }
+
+  return null;
 }
 
 export function trackRequestPayloads(filePath: string): RequestPayloadUsage[] {
@@ -74,14 +116,18 @@ export function trackRequestPayloads(filePath: string): RequestPayloadUsage[] {
 
       const payload = body.getArguments()[0];
 
-      if (!payload || !Node.isObjectLiteralExpression(payload)) continue;
+      if (!payload) continue;
+
+      const payloadInfo = resolvePayloadFields(payload);
+
+      if (!payloadInfo) continue;
 
       results.push({
         method,
         url: urlArg.getLiteralValue(),
         file: sourceFile.getFilePath(),
         line: call.getStartLineNumber(),
-        fields: extractObjectFields(payload),
+        ...payloadInfo,
       });
 
       continue;
@@ -99,14 +145,16 @@ export function trackRequestPayloads(filePath: string): RequestPayloadUsage[] {
     const payloadArg = args[1];
 
     if (!urlArg || !Node.isStringLiteral(urlArg)) continue;
-    if (!payloadArg || !Node.isObjectLiteralExpression(payloadArg)) continue;
+    if (!payloadArg) continue;
+    const payloadInfo = resolvePayloadFields(payloadArg);
+    if (!payloadInfo) continue;
 
     results.push({
       method,
       url: urlArg.getLiteralValue(),
       file: sourceFile.getFilePath(),
       line: call.getStartLineNumber(),
-      fields: extractObjectFields(payloadArg),
+      ...payloadInfo,
     });
   }
 
