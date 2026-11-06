@@ -43,10 +43,86 @@ function extractObjectFields(object: ObjectLiteralExpression): {
   return { fields, isComplete };
 }
 
-function resolvePayloadFields(node: Node): {
-  fields: string[];
-  isComplete: boolean;
-} | null {
+function isPayloadMutated(
+  declaration: import("ts-morph").VariableDeclaration,
+  callPosition: number,
+): boolean {
+  const name = declaration.getNameNode();
+
+  if (!Node.isIdentifier(name)) return true;
+
+  const references = name.findReferencesAsNodes();
+
+  for (const reference of references) {
+    if (reference.getStart() <= declaration.getStart()) continue;
+    if (reference.getStart() >= callPosition) continue;
+
+    const parent = reference.getParent();
+
+    if (parent && Node.isPropertyAccessExpression(parent)) {
+      const grandparent = parent.getParent();
+
+      if (grandparent && Node.isDeleteExpression(grandparent)) {
+        return true;
+      }
+    }
+
+    if (parent && Node.isCallExpression(parent)) {
+      const expression = parent.getExpression();
+
+      if (
+        expression.getText() !== "Object.assign" &&
+        parent.getArguments().includes(reference)
+      ) {
+        return true;
+      }
+    }
+
+    if (parent && Node.isVariableDeclaration(parent)) {
+      if (parent.getInitializer() === reference) {
+        return true;
+      }
+    }
+
+    if (parent && Node.isCallExpression(parent)) {
+      const expression = parent.getExpression();
+
+      if (
+        expression.getText() === "Object.assign" &&
+        parent.getArguments()[0] === reference
+      ) {
+        return true;
+      }
+    }
+
+    // Detect payload.email = ...
+    // or payload = ...
+    const target =
+      parent &&
+      (Node.isPropertyAccessExpression(parent) ||
+        Node.isElementAccessExpression(parent))
+        ? parent
+        : reference;
+
+    const assignment = target.getParent();
+
+    if (
+      assignment &&
+      Node.isBinaryExpression(assignment) &&
+      assignment.getLeft() === target &&
+      assignment.getOperatorToken().getText().endsWith("=")
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function resolvePayloadFields(
+  node: Node,
+  callPosition: number,
+): { fields: string[]; isComplete: boolean } | null {
   if (Node.isObjectLiteralExpression(node)) {
     return extractObjectFields(node);
   }
@@ -65,7 +141,13 @@ function resolvePayloadFields(node: Node): {
       return null;
     }
 
-    return extractObjectFields(initializer);
+    const result = extractObjectFields(initializer);
+
+    return {
+      fields: result.fields,
+      isComplete:
+        result.isComplete && !isPayloadMutated(declaration, callPosition),
+    };
   }
 
   return null;
@@ -118,7 +200,7 @@ export function trackRequestPayloads(filePath: string): RequestPayloadUsage[] {
 
       if (!payload) continue;
 
-      const payloadInfo = resolvePayloadFields(payload);
+      const payloadInfo = resolvePayloadFields(payload, call.getStart());
 
       if (!payloadInfo) continue;
 
@@ -146,7 +228,7 @@ export function trackRequestPayloads(filePath: string): RequestPayloadUsage[] {
 
     if (!urlArg || !Node.isStringLiteral(urlArg)) continue;
     if (!payloadArg) continue;
-    const payloadInfo = resolvePayloadFields(payloadArg);
+    const payloadInfo = resolvePayloadFields(payloadArg, call.getStart());
     if (!payloadInfo) continue;
 
     results.push({
