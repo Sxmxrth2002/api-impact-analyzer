@@ -109,32 +109,54 @@ export function findMatchingEndpoint(
 
     if (requestPath === undefined) continue;
 
-    for (const [openApiPath, pathItem] of Object.entries(spec.paths)) {
-      const matchingPaths = Object.entries(spec.paths)
-        .filter(([openApiPath, pathItem]) => {
-          if (!pathItem) return false;
+    const matchingPaths = Object.entries(spec.paths)
+      .filter(([openApiPath, pathItem]) => {
+        if (!pathItem) return false;
 
-          if (!matchEndpoint(requestPath, openApiPath)) {
-            return false;
-          }
+        if (!matchEndpoint(requestPath, openApiPath)) {
+          return false;
+        }
 
-          const operation = pathItem[normalizedMethod as keyof typeof pathItem];
+        const operation = pathItem[normalizedMethod as keyof typeof pathItem];
 
-          return Boolean(operation);
-        })
-        .sort(
-          ([pathA], [pathB]) =>
-            getPathSpecificity(pathB) - getPathSpecificity(pathA),
-        );
+        return Boolean(operation);
+      })
+      .sort(
+        ([pathA], [pathB]) =>
+          getPathSpecificity(pathB) - getPathSpecificity(pathA),
+      );
 
-      if (matchingPaths.length > 0) {
-        return {
-          method: normalizedMethod.toUpperCase(),
-          path: matchingPaths[0][0],
-        };
-      }
+    if (matchingPaths.length > 0) {
+      return {
+        method: normalizedMethod.toUpperCase(),
+        path: matchingPaths[0][0],
+      };
     }
   }
 
   return undefined;
+}
+
+export function matchApiEndpoint(
+  consumerUrl: string,
+  serverUrl: string,
+  openApiPath: string,
+): boolean {
+  try {
+    const consumer = new URL(consumerUrl);
+    const server = new URL(serverUrl);
+
+    // Ensure requests belong to the same API host.
+    if (consumer.origin !== server.origin) {
+      return false;
+    }
+
+    // Support OpenAPI server URLs with base paths.
+    const basePath = server.pathname.replace(/\/+$/, "");
+    const fullPath = `${basePath}${openApiPath}`;
+
+    return matchEndpoint(consumer.pathname, fullPath);
+  } catch {
+    return false;
+  }
 }

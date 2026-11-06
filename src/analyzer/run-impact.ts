@@ -5,6 +5,7 @@ import { generateImpactReport } from "./impact-report.js";
 import { trackResponseFields } from "../consumer-analyzer/response-tracker.js";
 import { scanConsumer } from "../consumer-analyzer/scanner.js";
 import { trackRequestPayloads } from "../consumer-analyzer/request-tracker.js";
+import { findTypeScriptFiles } from "../consumer-analyzer/file-scanner.js";
 
 async function main() {
   // Load OpenAPI specifications
@@ -12,21 +13,36 @@ async function main() {
 
   const newSpec = await loadOpenAPISpec(path.resolve("examples/new-api.yaml"));
 
+  // Get the API server URL for host-aware matching
+  const serverUrl = oldSpec.servers?.[0]?.url;
+
+  if (!serverUrl) {
+    throw new Error("OpenAPI server URL is missing");
+  }
+
   // Phase 1: Detect contract changes
   const findings = analyzeContract(oldSpec, newSpec);
 
-  // Consumer source file
-  const consumerFile = path.resolve("examples/consumer-service/userClient.ts");
-  const payloads = trackRequestPayloads(consumerFile);
+  // Discover all TypeScript consumer files
+  const consumerDirectory = path.resolve("examples/consumer-service");
 
-  // Phase 2: Detect response field usage
-  const usages = trackResponseFields(consumerFile);
+  const consumerFiles = findTypeScriptFiles(consumerDirectory);
 
-  // Phase 2: Detect API calls
-  const apiCalls = scanConsumer(consumerFile);
+  // Phase 2: Analyze consumer code
+  const usages = consumerFiles.flatMap((file) => trackResponseFields(file));
 
-  // Generate impact report
-  const report = generateImpactReport(findings, usages, apiCalls, payloads);
+  const apiCalls = consumerFiles.flatMap((file) => scanConsumer(file));
+
+  const payloads = consumerFiles.flatMap((file) => trackRequestPayloads(file));
+
+  // Generate consolidated impact report
+  const report = generateImpactReport(
+    findings,
+    usages,
+    apiCalls,
+    payloads,
+    serverUrl,
+  );
 
   console.log(JSON.stringify(report, null, 2));
 }

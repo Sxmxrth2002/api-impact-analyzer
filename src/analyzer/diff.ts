@@ -1,3 +1,5 @@
+import type { OpenAPIV3 } from "openapi-types";
+
 const HTTP_METHODS = [
   "get",
   "post",
@@ -9,11 +11,7 @@ const HTTP_METHODS = [
   "trace",
 ] as const;
 
-type PathItem = Record<string, unknown>;
-
-interface OpenApiSpec {
-  paths?: Record<string, PathItem>;
-}
+type OpenApiSpec = OpenAPIV3.Document;
 
 interface Schema {
   type?: string;
@@ -74,6 +72,7 @@ export function detectRemovedEndpoints(
   const newPaths = newSpec.paths ?? {};
 
   for (const [path, oldMethods] of Object.entries(oldPaths)) {
+    if (!oldMethods) continue;
     const newMethods = newPaths[path] ?? {};
 
     for (const method of HTTP_METHODS) {
@@ -99,6 +98,7 @@ export function detectRemovedResponseFields(
   const newPaths = newSpec.paths ?? {};
 
   for (const [path, oldPathItem] of Object.entries(oldPaths)) {
+    if (!oldPathItem) continue;
     const newPathItem = newPaths[path];
 
     if (!newPathItem) continue;
@@ -156,6 +156,7 @@ export function detectResponseTypeChanges(
   const newPaths = newSpec.paths ?? {};
 
   for (const [path, oldPathItem] of Object.entries(oldPaths)) {
+    if (!oldPathItem) continue;
     const newPathItem = newPaths[path];
 
     if (!newPathItem) continue;
@@ -223,6 +224,7 @@ export function detectNewRequiredRequestFields(
   const newPaths = newSpec.paths ?? {};
 
   for (const [path, oldPathItem] of Object.entries(oldPaths)) {
+    if (!oldPathItem) continue;
     const newPathItem = newPaths[path];
 
     if (!newPathItem) continue;
@@ -271,6 +273,7 @@ export function detectRemovedResponseStatusCodes(
   const newPaths = newSpec.paths ?? {};
 
   for (const [path, oldPathItem] of Object.entries(oldPaths)) {
+    if (!oldPathItem) continue;
     const newPathItem = newPaths[path];
 
     if (!newPathItem) continue;

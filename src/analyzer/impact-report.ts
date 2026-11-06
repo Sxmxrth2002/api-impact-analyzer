@@ -7,6 +7,7 @@ import type { EndpointConsumerImpact } from "../consumer-analyzer/scanner.js";
 import type { ApiCall } from "../consumer-analyzer/scanner.js";
 import type { RequestPayloadUsage } from "../consumer-analyzer/request-tracker.js";
 import type { RequestPayloadImpact } from "./types.js";
+import { matchApiEndpoint } from "../consumer-analyzer/endpoint-matcher.js";
 
 export function matchConsumerImpacts(
   finding: Finding,
@@ -96,6 +97,7 @@ export function matchRemovedEndpointCalls(
 export function matchRequiredRequestFields(
   finding: Finding,
   payloads: RequestPayloadUsage[],
+  serverUrl: string,
 ): RequestPayloadImpact[] {
   if (finding.type !== "REQUEST_FIELD_REQUIRED") return [];
 
@@ -118,6 +120,9 @@ export function matchRequiredRequestFields(
     }
 
     if (!matchEndpoint(consumerPath, endpointPath)) continue;
+    if (!matchApiEndpoint(payload.url, serverUrl, endpointPath)) {
+      continue;
+    }
     if (!payload.isComplete) continue;
     if (payload.fields.includes(requiredField)) continue;
 
@@ -138,6 +143,7 @@ export function generateImpactReport(
   usages: ResponseFieldUsage[],
   apiCalls: ApiCall[],
   payloads: RequestPayloadUsage[],
+  serverUrl: string,
 ): ImpactReport {
   const entries = findings.map((finding) => {
     if (
@@ -160,7 +166,7 @@ export function generateImpactReport(
           : [],
       impactedRequestPayloads:
         finding.type === "REQUEST_FIELD_REQUIRED"
-          ? matchRequiredRequestFields(finding, payloads)
+          ? matchRequiredRequestFields(finding, payloads, serverUrl)
           : [],
     };
   });

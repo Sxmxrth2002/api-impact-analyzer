@@ -40,7 +40,11 @@ describe("matchRequiredRequestFields", () => {
   ];
 
   it("detects requests missing the required field", () => {
-    const impacts = matchRequiredRequestFields(finding, payloads);
+    const impacts = matchRequiredRequestFields(
+      finding,
+      payloads,
+      "https://api.example.com",
+    );
 
     expect(impacts).toHaveLength(1);
     expect(impacts[0].line).toBe(10);
@@ -48,28 +52,40 @@ describe("matchRequiredRequestFields", () => {
   });
 
   it("ignores requests that already contain the required field", () => {
-    const impacts = matchRequiredRequestFields(finding, [payloads[1]]);
+    const impacts = matchRequiredRequestFields(
+      finding,
+      [payloads[1]],
+      "https://api.example.com",
+    );
 
     expect(impacts).toHaveLength(0);
   });
 
   it("ignores requests with different HTTP methods", () => {
-    const impacts = matchRequiredRequestFields(finding, [payloads[2]]);
+    const impacts = matchRequiredRequestFields(
+      finding,
+      [payloads[2]],
+      "https://api.example.com",
+    );
 
     expect(impacts).toHaveLength(0);
   });
 
   it("ignores incomplete payloads to prevent false positives", () => {
-    const impacts = matchRequiredRequestFields(finding, [
-      {
-        method: "POST",
-        url: "https://api.example.com/users",
-        file: "userClient.ts",
-        line: 40,
-        fields: ["name"],
-        isComplete: false,
-      },
-    ]);
+    const impacts = matchRequiredRequestFields(
+      finding,
+      [
+        {
+          method: "POST",
+          url: "https://api.example.com/users",
+          file: "userClient.ts",
+          line: 40,
+          fields: ["name"],
+          isComplete: false,
+        },
+      ],
+      "https://api.example.com",
+    );
 
     expect(impacts).toHaveLength(0);
   });
