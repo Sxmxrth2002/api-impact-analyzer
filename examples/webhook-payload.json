@@ -1,0 +1,19 @@
+{
+  "action": "opened",
+  "installation": {
+    "id": 123456
+  },
+  "repository": {
+    "id": 987654,
+    "full_name": "test-user/api-impact-analyser"
+  },
+  "number": 12,
+  "pull_request": {
+    "base": {
+      "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "head": {
+      "sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  }
+}
