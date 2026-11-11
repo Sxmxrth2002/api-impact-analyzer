@@ -12,6 +12,7 @@ import { matchApiEndpoint } from "../consumer-analyzer/endpoint-matcher.js";
 export function matchConsumerImpacts(
   finding: Finding,
   usages: ResponseFieldUsage[],
+  serverUrl: string,
 ): ImpactReportEntry {
   const [method, endpointPath] = finding.endpoint.split(" ", 2);
 
@@ -22,16 +23,9 @@ export function matchConsumerImpacts(
     if (usage.method.toUpperCase() !== method) continue;
 
     // Extract pathname from consumer URL
-    let consumerPath: string;
-
-    try {
-      consumerPath = new URL(usage.url).pathname;
-    } catch {
-      consumerPath = usage.url.split("?")[0];
+    if (!matchApiEndpoint(usage.url, serverUrl, endpointPath)) {
+      continue;
     }
-
-    // Match concrete URL against OpenAPI endpoint template
-    if (!matchEndpoint(consumerPath, endpointPath)) continue;
 
     // Field-level matching for response changes
     if (
@@ -61,6 +55,7 @@ export function matchConsumerImpacts(
 export function matchRemovedEndpointCalls(
   finding: Finding,
   apiCalls: ApiCall[],
+  serverUrl: string,
 ): EndpointConsumerImpact[] {
   if (finding.type !== "ENDPOINT_REMOVED") {
     return [];
@@ -81,7 +76,9 @@ export function matchRemovedEndpointCalls(
       consumerPath = call.url.split("?")[0];
     }
 
-    if (!matchEndpoint(consumerPath, endpointPath)) continue;
+    if (!matchApiEndpoint(call.url, serverUrl, endpointPath)) {
+      continue;
+    }
 
     impactedCalls.push({
       file: call.file,
@@ -150,7 +147,7 @@ export function generateImpactReport(
       finding.type === "RESPONSE_FIELD_REMOVED" ||
       finding.type === "RESPONSE_TYPE_CHANGED"
     ) {
-      return matchConsumerImpacts(finding, usages);
+      return matchConsumerImpacts(finding, usages, serverUrl);
     }
 
     // Other change types are included without consumer matches for now.
@@ -162,7 +159,7 @@ export function generateImpactReport(
       impactedConsumers: [],
       impactedEndpointCalls:
         finding.type === "ENDPOINT_REMOVED"
-          ? matchRemovedEndpointCalls(finding, apiCalls)
+          ? matchRemovedEndpointCalls(finding, apiCalls, serverUrl)
           : [],
       impactedRequestPayloads:
         finding.type === "REQUEST_FIELD_REQUIRED"

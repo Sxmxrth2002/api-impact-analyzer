@@ -54,7 +54,11 @@ describe("Impact Report Matcher", () => {
   ];
 
   it("matches only consumers accessing the removed response field", () => {
-    const result = matchConsumerImpacts(finding, usages);
+    const result = matchConsumerImpacts(
+      finding,
+      usages,
+      "https://api.example.com",
+    );
 
     expect(result.severity).toBe("BREAKING");
     expect(result.method).toBe("GET");
@@ -81,6 +85,7 @@ describe("Impact Report Matcher", () => {
         },
       },
       usages,
+      "https://api.example.com",
     );
 
     expect(result.impactedConsumers).toEqual([]);
@@ -99,6 +104,7 @@ describe("Impact Report Matcher", () => {
         },
       },
       usages,
+      "https://api.example.com",
     );
 
     expect(result.impactedConsumers).toHaveLength(1);
@@ -141,7 +147,11 @@ describe("Impact Report Matcher", () => {
       },
     ];
 
-    const result = matchRemovedEndpointCalls(finding, apiCalls);
+    const result = matchRemovedEndpointCalls(
+      finding,
+      apiCalls,
+      "https://api.example.com",
+    );
 
     expect(result).toHaveLength(2);
 
