@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import "dotenv/config";
 import { extractPullRequestJob } from "./webhook-types.js";
+import { analysisQueue } from "../queue/analysis-queue.js";
 
 const app = Fastify({
   logger: true,
@@ -100,9 +101,24 @@ app.post("/webhooks/github", async (request, reply) => {
     "Validated pull request event",
   );
 
-  return reply.code(200).send({
-    message: "Webhook verified",
-  });
+  try {
+    const queuedJob = await analysisQueue.add("analyze-pr", job, {
+      jobId: `${job.repositoryId}-${job.pullRequestNumber}-${job.headSha}`,
+    });
+
+    app.log.info({ jobId: queuedJob.id }, "PR analysis job queued");
+
+    return reply.code(202).send({
+      message: "Analysis queued",
+      jobId: queuedJob.id,
+    });
+  } catch (error) {
+    app.log.error(error, "Failed to enqueue PR analysis");
+
+    return reply.code(503).send({
+      error: "Analysis queue unavailable",
+    });
+  }
 });
 
 async function start() {
