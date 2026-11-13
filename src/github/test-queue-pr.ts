@@ -1,4 +1,3 @@
-
 import "dotenv/config";
 import { getInstallationClient } from "./auth.js";
 import { analysisQueue } from "../queue/analysis-queue.js";

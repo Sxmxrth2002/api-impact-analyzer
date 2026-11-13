@@ -40,7 +40,7 @@ export async function analyzeConsumers(
       );
 
       if (affected) {
-        impacts.push({...usage, file});
+        impacts.push({ ...usage, file });
       }
     }
   }

@@ -4,6 +4,8 @@ import { redisConnection } from "../queue/connection.js";
 import { ANALYSIS_QUEUE_NAME } from "../queue/analysis-queue.js";
 import type { PullRequestJob } from "../server/webhook-types.js";
 import { analyzePullRequest } from "../github/analyze-pr.js";
+import { createAnalysisCheck } from "../github/create-check.js";
+import { completeAnalysisCheck } from "../github/complete-check.js";
 
 const worker = new Worker<PullRequestJob>(
   ANALYSIS_QUEUE_NAME,
@@ -18,17 +20,48 @@ const worker = new Worker<PullRequestJob>(
 
     console.log(`Analyzing PR #${pullRequestNumber}`);
 
-    const result = await analyzePullRequest(
+    const check = await createAnalysisCheck(
       installationId,
       repositoryFullName,
-      "examples/old-api.yaml",
-      baseSha,
       headSha,
     );
 
-    console.log("PR analysis result:", JSON.stringify(result, null, 2));
+    try {
+      const result = await analyzePullRequest(
+        installationId,
+        repositoryFullName,
+        "examples/old-api.yaml",
+        baseSha,
+        headSha,
+      );
 
-    return result;
+      const breakingChanges =
+        result.removedEndpoints.length +
+        result.removedResponseFields.length +
+        result.responseTypeChanges.length +
+        result.newRequiredRequestFields.length;
+
+      await completeAnalysisCheck(
+        installationId,
+        repositoryFullName,
+        check.data.id,
+        breakingChanges,
+        result.impactedConsumers.length,
+      );
+
+      console.log("PR analysis result:", JSON.stringify(result, null, 2));
+      return result;
+    } catch (error) {
+      await completeAnalysisCheck(
+        installationId,
+        repositoryFullName,
+        check.data.id,
+        1,
+        0,
+      );
+
+      throw error;
+    }
   },
   {
     connection: redisConnection,
