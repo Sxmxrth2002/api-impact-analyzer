@@ -3,30 +3,32 @@ import { Worker } from "bullmq";
 import { redisConnection } from "../queue/connection.js";
 import { ANALYSIS_QUEUE_NAME } from "../queue/analysis-queue.js";
 import type { PullRequestJob } from "../server/webhook-types.js";
+import { analyzePullRequest } from "../github/analyze-pr.js";
 
 const worker = new Worker<PullRequestJob>(
   ANALYSIS_QUEUE_NAME,
   async (job) => {
-    const { repositoryFullName, pullRequestNumber, baseSha, headSha } =
-      job.data;
-
-    console.log("Starting PR analysis:", {
-      repository: repositoryFullName,
-      pr: pullRequestNumber,
+    const {
+      installationId,
+      repositoryFullName,
+      pullRequestNumber,
       baseSha,
       headSha,
-    });
+    } = job.data;
 
-    // Placeholder: GitHub repository fetching and analysis
-    // will be implemented in subsequent steps.
+    console.log(`Analyzing PR #${pullRequestNumber}`);
 
-    console.log(`Analysis completed for PR #${pullRequestNumber}`);
+    const result = await analyzePullRequest(
+      installationId,
+      repositoryFullName,
+      "examples/old-api.yaml",
+      baseSha,
+      headSha,
+    );
 
-    return {
-      status: "completed",
-      repository: repositoryFullName,
-      pullRequestNumber,
-    };
+    console.log("PR analysis result:", JSON.stringify(result, null, 2));
+
+    return result;
   },
   {
     connection: redisConnection,

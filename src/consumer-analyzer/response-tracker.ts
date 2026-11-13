@@ -118,9 +118,16 @@ function getAxiosRequest(
   };
 }
 
-export function trackResponseFields(filePath: string): ResponseFieldUsage[] {
+export function trackResponseFields(
+  filePath: string,
+  content?: string,
+): ResponseFieldUsage[] {
   const project = new Project();
-  const sourceFile = project.addSourceFileAtPath(filePath);
+
+  const sourceFile =
+    content === undefined
+      ? project.addSourceFileAtPath(filePath)
+      : project.createSourceFile(filePath, content, { overwrite: true });
 
   // Key maps by declaration node, not variable name.
   const requestVariables = new Map<

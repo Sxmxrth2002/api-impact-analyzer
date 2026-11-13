@@ -10,6 +10,12 @@ export async function fetchGitHubFile(
 
   const octokit = await getInstallationClient(installationId);
 
+  console.log("Fetching GitHub file:", {
+    repositoryFullName,
+    filePath,
+    ref,
+  });
+
   const response = await octokit.rest.repos.getContent({
     owner,
     repo,
