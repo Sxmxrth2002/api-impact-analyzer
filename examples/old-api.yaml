@@ -30,7 +30,6 @@ paths:
   /users/{id}:
     get:
       parameters:
-        - name: id
           in: path
           required: true
           schema:
