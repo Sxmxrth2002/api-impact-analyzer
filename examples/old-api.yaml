@@ -30,10 +30,10 @@ paths:
   /users/{id}:
     get:
       parameters:
-          in: path
-          required: true
-          schema:
-            type: integer
+        -in: path
+        required: true
+        schema:
+          type: integer
       responses:
         "200":
           description: User details
