@@ -1,91 +1,129 @@
 # API Impact Analyzer
 
-A TypeScript CLI that detects potentially breaking changes
-between OpenAPI specifications.
-
-## Current Detection Rules
-
-- Removed API endpoints
-- Removed response fields
-- Changed response field types
-- Newly required request fields
-- Removed response status codes
+A TypeScript-based tool that detects breaking OpenAPI contract changes, identifies affected consumer code, and automatically reports potential issues on GitHub pull requests.
 
 ## Features
 
-- OpenAPI 3.x parsing and validation
-- Schema reference resolution
-- Human-readable and JSON reports
-- Automated unit and CLI integration tests
-- Exit codes for CI integration
+### 1. OpenAPI Contract Analysis
+- Compares old and new OpenAPI specifications.
+- Detects removed endpoints and response fields.
+- Identifies incompatible response field types.
+- Detects newly required request fields and removed response status codes.
+- Generates human-readable and JSON reports.
 
-## Usage
+### 2. Consumer Impact Analysis
+Uses TypeScript Abstract Syntax Tree (AST) analysis through `ts-morph` to identify potentially affected consumers.
+
+- Detects API calls using `fetch` and Axios.
+- Tracks response field access and destructuring.
+- Identifies missing required request body fields.
+- Matches dynamic endpoint paths such as `/users/{id}`.
+- Validates API hostnames against OpenAPI server definitions.
+- Reports impacted files and line numbers.
+
+### 3. GitHub Pull Request Integration
+- Integrates with GitHub using a GitHub App.
+- Receives pull request webhook events.
+- Processes analysis jobs asynchronously using BullMQ and Redis.
+- Compares API specifications across pull request revisions.
+- Publishes analysis results through GitHub Checks.
+
+## Architecture
+
+```text
+GitHub Pull Request
+        |
+        v
+GitHub App Webhook
+        |
+        v
+Fastify Webhook Server
+        |
+        v
+BullMQ + Redis Queue
+        |
+        v
+Background Worker
+        |
+        v
+OpenAPI Diff Engine
+        |
+        v
+TypeScript Consumer Analyzer
+        |
+        v
+Impact Report
+        |
+        v
+GitHub Checks API
+```
+
+## Tech Stack
+
+- **Language:** TypeScript
+- **Backend:** Fastify
+- **Static Analysis:** ts-morph
+- **Background Jobs:** BullMQ, Redis
+- **GitHub Integration:** GitHub Apps, Octokit
+- **API Specifications:** OpenAPI 3.0
+
+## CLI Usage
 
 Install dependencies:
 
-    npm install
+```bash
+npm install
+```
 
-Run analysis:
+Run contract analysis:
 
-    npm run dev -- --before examples/old-api.yaml --after examples/new-api.yaml
+```bash
+npm run dev -- --before examples/old-api.yaml --after examples/new-api.yaml
+```
 
-JSON output:
+Generate JSON output:
 
-    npm run dev -- --before examples/old-api.yaml --after examples/new-api.yaml --format json
+```bash
+npm run dev -- --before examples/old-api.yaml --after examples/new-api.yaml --format json
+```
 
-## Exit Codes
+### Exit Codes
 
-- 0: No breaking changes
-- 1: Analysis error
-- 2: Breaking changes detected
+| Code | Meaning |
+|---|---|
+| 0 | No breaking changes |
+| 1 | Analysis error |
+| 2 | Breaking changes detected |
 
 ## Current Limitations
 
-- Top-level response properties only
-- No recursive nested-field comparison
-- No comprehensive schema composition analysis
-- No consumer dependency analysis yet
-- No automatic GitHub PR integration yet
-- No AI explanations yet
+**OpenAPI analysis**
+- Nested response properties are not recursively compared.
+- Comprehensive schema composition analysis is not supported.
+- OpenAPI 3.1 is not yet supported.
+- Circular references are not fully resolved.
+
+**Consumer analysis**
+- Only TypeScript and TSX consumers are supported.
+- API URLs must be statically identifiable and absolute for host matching.
+- Host matching uses the first OpenAPI server URL.
+- Dynamic property access may not be detected.
+- Incompletely analyzable request payloads are skipped.
+- Some direct response access patterns are unsupported.
+- Cross-file data flow and complex runtime behavior are not analyzed.
+
+The analyzer uses conservative static analysis and does not guarantee detection of every affected consumer.
 
 ## Roadmap
 
-Phase 2: TypeScript consumer dependency analysis.
+- [x] Phase 1: OpenAPI Contract Diff Engine
+- [x] Phase 2: TypeScript Consumer Dependency Analysis
+- [x] Phase 3: GitHub App Integration and Asynchronous PR Analysis
+- [ ] Phase 4: AI-Generated Impact Explanations using Ollama
+- [ ] Phase 5: React Dashboard
 
-Phase 3: GitHub App and pull request integration.
+## Project Status
 
-Phase 4: AI-generated impact explanations.
+Phases 1–3 are implemented. AI-generated explanations and the React dashboard are planned for future development.
 
-Phase 5: React dashboard.
-
-## Consumer Impact Analysis
-
-The analyzer uses TypeScript AST analysis to identify consumer code
-potentially affected by breaking OpenAPI contract changes.
-
-### Supported Features
-
-- Detects API calls made using fetch and Axios.
-- Tracks response field accesses and destructuring.
-- Identifies missing newly required request body fields.
-- Detects calls to removed API endpoints.
-- Matches dynamic endpoint paths such as `/users/{id}`.
-- Validates API hostnames against the OpenAPI server URL.
-- Scans multiple TypeScript and TSX files.
-- Generates a consolidated impact report with file and line numbers.
-
-### Current Limitations
-
-- Only TypeScript and TSX consumers are supported.
-- API URLs must be statically identifiable and absolute for host matching.
-- Host matching currently uses the first OpenAPI server URL.
-- Dynamic response property access may not be detected.
-- Request payloads that cannot be analyzed completely are skipped.
-- Some response access patterns, such as direct `response.data.name`,
-  are not yet supported.
-- Cross-file data flow and complex runtime behavior are not analyzed.
-- OpenAPI 3.0 specifications are supported; OpenAPI 3.1 is not yet supported.
-- Circular references are not fully resolved.
-
-The analyzer uses conservative static analysis and does not guarantee
-detection of every affected consumer.
+![alt text](image.png)
