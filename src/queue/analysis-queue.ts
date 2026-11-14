@@ -12,7 +12,7 @@ export const analysisQueue = new Queue<PullRequestJob>(ANALYSIS_QUEUE_NAME, {
       type: "exponential",
       delay: 2000,
     },
-    removeOnComplete: 100,
+    removeOnComplete: true,
     removeOnFail: 500,
   },
 });
