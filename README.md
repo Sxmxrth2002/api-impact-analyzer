@@ -5,6 +5,7 @@ A TypeScript-based tool that detects breaking OpenAPI contract changes, identifi
 ## Features
 
 ### 1. OpenAPI Contract Analysis
+
 - Compares old and new OpenAPI specifications.
 - Detects removed endpoints and response fields.
 - Identifies incompatible response field types.
@@ -12,6 +13,7 @@ A TypeScript-based tool that detects breaking OpenAPI contract changes, identifi
 - Generates human-readable and JSON reports.
 
 ### 2. Consumer Impact Analysis
+
 Uses TypeScript Abstract Syntax Tree (AST) analysis through `ts-morph` to identify potentially affected consumers.
 
 - Detects API calls using `fetch` and Axios.
@@ -22,6 +24,7 @@ Uses TypeScript Abstract Syntax Tree (AST) analysis through `ts-morph` to identi
 - Reports impacted files and line numbers.
 
 ### 3. GitHub Pull Request Integration
+
 - Integrates with GitHub using a GitHub App.
 - Receives pull request webhook events.
 - Processes analysis jobs asynchronously using BullMQ and Redis.
@@ -89,21 +92,23 @@ npm run dev -- --before examples/old-api.yaml --after examples/new-api.yaml --fo
 
 ### Exit Codes
 
-| Code | Meaning |
-|---|---|
-| 0 | No breaking changes |
-| 1 | Analysis error |
-| 2 | Breaking changes detected |
+| Code | Meaning                   |
+| ---- | ------------------------- |
+| 0    | No breaking changes       |
+| 1    | Analysis error            |
+| 2    | Breaking changes detected |
 
 ## Current Limitations
 
 **OpenAPI analysis**
+
 - Nested response properties are not recursively compared.
 - Comprehensive schema composition analysis is not supported.
 - OpenAPI 3.1 is not yet supported.
 - Circular references are not fully resolved.
 
 **Consumer analysis**
+
 - Only TypeScript and TSX consumers are supported.
 - API URLs must be statically identifiable and absolute for host matching.
 - Host matching uses the first OpenAPI server URL.

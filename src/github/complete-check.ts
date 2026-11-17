@@ -6,9 +6,15 @@ export async function completeAnalysisCheck(
   checkRunId: number,
   breakingChanges: number,
   impactedConsumers: number,
+  aiExplanation?: string,
 ) {
   const [owner, repo] = repositoryFullName.split("/");
   const octokit = await getInstallationClient(installationId);
+
+  const summary = [
+    `Breaking changes: ${breakingChanges}`,
+    `Impacted consumers: ${impactedConsumers}`,
+  ].join("\n");
 
   return octokit.rest.checks.update({
     owner,
@@ -19,7 +25,10 @@ export async function completeAnalysisCheck(
     completed_at: new Date().toISOString(),
     output: {
       title: "API Contract Impact Analysis",
-      summary: `Breaking changes: ${breakingChanges}\nImpacted consumers: ${impactedConsumers}`,
+      summary,
+      ...(aiExplanation
+        ? { text: `## AI-Powered Explanation\n\n${aiExplanation}` }
+        : {}),
     },
   });
 }

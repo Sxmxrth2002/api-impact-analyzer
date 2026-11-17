@@ -6,6 +6,8 @@ import type { PullRequestJob } from "../server/webhook-types.js";
 import { analyzePullRequest } from "../github/analyze-pr.js";
 import { createAnalysisCheck } from "../github/create-check.js";
 import { completeAnalysisCheck } from "../github/complete-check.js";
+import { generateExplanation } from "../ai/ollama-client.js";
+import { buildAnalysisPrompt } from "../ai/build-prompt.js";
 
 const worker = new Worker<PullRequestJob>(
   ANALYSIS_QUEUE_NAME,
@@ -41,12 +43,26 @@ const worker = new Worker<PullRequestJob>(
         result.responseTypeChanges.length +
         result.newRequiredRequestFields.length;
 
+      let aiExplanation: string | undefined;
+
+      if (breakingChanges > 0) {
+        try {
+          const prompt = buildAnalysisPrompt(result);
+
+          aiExplanation = await generateExplanation(prompt);
+          console.log("AI explanation generated successfully");
+        } catch (error) {
+          console.error("AI explanation failed:", error);
+        }
+      }
+
       await completeAnalysisCheck(
         installationId,
         repositoryFullName,
         check.data.id,
         breakingChanges,
         result.impactedConsumers.length,
+        aiExplanation,
       );
 
       console.log("PR analysis result:", JSON.stringify(result, null, 2));
