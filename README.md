@@ -1,6 +1,6 @@
 # API Impact Analyzer
 
-A TypeScript-based tool that detects breaking OpenAPI contract changes, identifies affected consumer code, and automatically reports potential issues on GitHub pull requests.
+A TypeScript-based tool that detects breaking OpenAPI contract changes, identifies affected consumer code, and automatically reports potential issues on GitHub pull requests with AI-powered explanations.
 
 ## Features
 
@@ -26,10 +26,26 @@ Uses TypeScript Abstract Syntax Tree (AST) analysis through `ts-morph` to identi
 ### 3. GitHub Pull Request Integration
 
 - Integrates with GitHub using a GitHub App.
-- Receives pull request webhook events.
+- Receives pull request webhook events with HMAC signature verification.
 - Processes analysis jobs asynchronously using BullMQ and Redis.
-- Compares API specifications across pull request revisions.
-- Publishes analysis results through GitHub Checks.
+- Compares API specifications across pull request base and head commits.
+- Uses Octokit for authenticated GitHub API access.
+- Publishes breaking change counts and impacted consumer locations through GitHub Checks.
+
+### 4. AI-Powered Impact Explanations
+
+Integrates with **Ollama running Llama 3.2 locally** to generate explanations of detected breaking API changes.
+
+- Explains confirmed breaking changes and their potential impact.
+- Suggests possible fixes and backward-compatible alternatives.
+- Uses deterministic analysis results as the source of truth.
+- Minimizes consumer information sent to the language model.
+- Executes AI inference asynchronously in the background worker.
+- Includes a 30-second timeout per request and one retry on failure.
+- Gracefully handles AI failures without preventing deterministic analysis results from being published.
+- Publishes AI-generated explanations directly in GitHub Checks.
+
+AI explanations are advisory and may require developer review.
 
 ## Architecture
 
@@ -41,6 +57,7 @@ GitHub App Webhook
         |
         v
 Fastify Webhook Server
+(HMAC Verification)
         |
         v
 BullMQ + Redis Queue
@@ -48,17 +65,25 @@ BullMQ + Redis Queue
         v
 Background Worker
         |
-        v
-OpenAPI Diff Engine
-        |
-        v
-TypeScript Consumer Analyzer
-        |
-        v
-Impact Report
+        +--> OpenAPI Diff Engine
+        |           |
+        |           v
+        |    TypeScript Consumer Analyzer
+        |           |
+        |           v
+        |      Impact Report
+        |           |
+        |           v
+        |    Ollama (Llama 3.2)
+        |           |
+        |           v
+        |    AI Explanations
         |
         v
 GitHub Checks API
+        |
+        v
+PR Analysis Results
 ```
 
 ## Tech Stack
@@ -68,6 +93,7 @@ GitHub Checks API
 - **Static Analysis:** ts-morph
 - **Background Jobs:** BullMQ, Redis
 - **GitHub Integration:** GitHub Apps, Octokit
+- **AI Inference:** Ollama, Llama 3.2
 - **API Specifications:** OpenAPI 3.0
 
 ## CLI Usage
@@ -98,16 +124,82 @@ npm run dev -- --before examples/old-api.yaml --after examples/new-api.yaml --fo
 | 1    | Analysis error            |
 | 2    | Breaking changes detected |
 
+## Running the GitHub PR Analyzer Locally
+
+The GitHub integration requires a configured GitHub App, Redis, and a locally running Fastify server and background worker.
+
+### 1. Start Redis
+
+```bash
+docker start api-impact-redis
+```
+
+### 2. Start Ollama
+
+Ensure Ollama is running and the Llama 3.2 model is installed.
+
+```bash
+ollama pull llama3.2
+```
+
+Verify the model:
+
+```bash
+ollama list
+```
+
+Ollama serves inference requests through its local API at `http://localhost:11434`.
+
+### 3. Start the Fastify server
+
+```bash
+npx tsx src/server/index.ts
+```
+
+### 4. Start the background worker
+
+In a separate terminal:
+
+```bash
+npx tsx src/worker/analysis-worker.ts
+```
+
+### 5. Expose the webhook endpoint
+
+```bash
+ngrok http 3000
+```
+
+Configure the GitHub App webhook URL to point to:
+
+```text
+https://<your-ngrok-domain>/webhooks/github
+```
+
+Ensure the required GitHub App credentials and webhook secret are configured in the local environment.
+
+### 6. Trigger analysis
+
+Open, synchronize, or reopen a pull request in a repository where the GitHub App is installed.
+
+The analyzer will:
+
+1. Fetch the OpenAPI specification from the PR base and head commits.
+2. Detect potentially breaking API changes.
+3. Analyze affected TypeScript consumers.
+4. Generate AI explanations when breaking changes are detected.
+5. Publish the results through GitHub Checks.
+
 ## Current Limitations
 
-**OpenAPI analysis**
+### OpenAPI Analysis
 
 - Nested response properties are not recursively compared.
 - Comprehensive schema composition analysis is not supported.
 - OpenAPI 3.1 is not yet supported.
 - Circular references are not fully resolved.
 
-**Consumer analysis**
+### Consumer Analysis
 
 - Only TypeScript and TSX consumers are supported.
 - API URLs must be statically identifiable and absolute for host matching.
@@ -117,6 +209,15 @@ npm run dev -- --before examples/old-api.yaml --after examples/new-api.yaml --fo
 - Some direct response access patterns are unsupported.
 - Cross-file data flow and complex runtime behavior are not analyzed.
 
+### AI Explanations
+
+- Requires a locally accessible Ollama instance running Llama 3.2.
+- AI explanations are generated only when breaking changes are detected.
+- AI-generated suggestions may be incomplete or technically incorrect.
+- Only a limited number of impacted consumer locations are included in the AI prompt.
+- Prompt-size limits and stricter AI output validation are not yet implemented.
+- AI inference can increase overall analysis latency.
+
 The analyzer uses conservative static analysis and does not guarantee detection of every affected consumer.
 
 ## Roadmap
@@ -124,11 +225,18 @@ The analyzer uses conservative static analysis and does not guarantee detection 
 - [x] Phase 1: OpenAPI Contract Diff Engine
 - [x] Phase 2: TypeScript Consumer Dependency Analysis
 - [x] Phase 3: GitHub App Integration and Asynchronous PR Analysis
-- [ ] Phase 4: AI-Generated Impact Explanations using Ollama
-- [ ] Phase 5: React Dashboard
+- [x] Phase 4: AI-Generated Impact Explanations using Ollama (Llama 3.2)
+- [ ] Phase 5: PostgreSQL Persistence and React Dashboard
+- [ ] Phase 6: Production Deployment, Testing, and Documentation Improvements
 
 ## Project Status
 
-Phases 1–3 are implemented. AI-generated explanations and the React dashboard are planned for future development.
+**Phases 1–4 are implemented and tested.**
 
-![alt text](image.png)
+The analyzer currently supports automated GitHub pull request analysis, breaking API change detection, TypeScript consumer impact identification, and AI-powered explanations published through GitHub Checks.
+
+The next development milestone is persistent analysis history and a React dashboard.
+
+## Demo
+
+![Contract analysis AI response in checks tab](image-1.png)
