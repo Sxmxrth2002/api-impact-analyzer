@@ -8,6 +8,7 @@ import { createAnalysisCheck } from "../github/create-check.js";
 import { completeAnalysisCheck } from "../github/complete-check.js";
 import { generateExplanation } from "../ai/ollama-client.js";
 import { buildAnalysisPrompt } from "../ai/build-prompt.js";
+import { saveAnalysis } from "../db/save-analysis.js";
 
 const worker = new Worker<PullRequestJob>(
   ANALYSIS_QUEUE_NAME,
@@ -55,6 +56,8 @@ const worker = new Worker<PullRequestJob>(
           console.error("AI explanation failed:", error);
         }
       }
+
+      await saveAnalysis(job.data, result, breakingChanges, aiExplanation);
 
       await completeAnalysisCheck(
         installationId,

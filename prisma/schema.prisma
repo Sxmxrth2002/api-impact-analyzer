@@ -6,3 +6,18 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+model Analysis {
+  id                  Int      @id @default(autoincrement())
+  repositoryId        String
+  repositoryFullName  String
+  pullRequestNumber   Int
+  baseSha             String
+  headSha             String
+  breakingChanges     Int
+  impactedConsumers   Int
+  result              Json
+  aiExplanation       String?
+  createdAt           DateTime @default(now())
+
+  @@unique([repositoryId, pullRequestNumber, baseSha, headSha])
+}

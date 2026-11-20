@@ -150,13 +150,28 @@ ollama list
 
 Ollama serves inference requests through its local API at `http://localhost:11434`.
 
-### 3. Start the Fastify server
+### 3. Set up PostgreSQL
+
+Create a PostgreSQL database for the analyzer and set `DATABASE_URL` in `.env`.
+For example, with a local database named `api_impact`:
+
+```dotenv
+DATABASE_URL=postgresql://USER:PASSWORD@127.0.0.1:5432/api_impact
+```
+
+Apply the checked-in migration:
+
+```bash
+npm run db:migrate
+```
+
+### 4. Start the Fastify server
 
 ```bash
 npx tsx src/server/index.ts
 ```
 
-### 4. Start the background worker
+### 5. Start the background worker
 
 In a separate terminal:
 
@@ -164,7 +179,7 @@ In a separate terminal:
 npx tsx src/worker/analysis-worker.ts
 ```
 
-### 5. Expose the webhook endpoint
+### 6. Expose the webhook endpoint
 
 ```bash
 ngrok http 3000
@@ -178,7 +193,7 @@ https://<your-ngrok-domain>/webhooks/github
 
 Ensure the required GitHub App credentials and webhook secret are configured in the local environment.
 
-### 6. Trigger analysis
+### 7. Trigger analysis
 
 Open, synchronize, or reopen a pull request in a repository where the GitHub App is installed.
 
@@ -188,7 +203,23 @@ The analyzer will:
 2. Detect potentially breaking API changes.
 3. Analyze affected TypeScript consumers.
 4. Generate AI explanations when breaking changes are detected.
-5. Publish the results through GitHub Checks.
+5. Save the findings and any AI explanation to PostgreSQL, keyed by repository, PR, base commit, and head commit.
+6. Publish the results through GitHub Checks.
+
+## Running the React Dashboard
+
+With `DATABASE_URL` configured and the migration applied, run:
+
+```bash
+npm run build
+npm run dashboard
+```
+
+Open [the local dashboard](http://127.0.0.1:3001) to browse completed PR
+analyses, expand findings and consumer references, and read saved AI
+explanations. The dashboard listens on loopback on port 3001. The GitHub webhook
+continues to use port 3000. The history starts with analyses saved by the
+updated worker.
 
 ## Current Limitations
 
@@ -226,16 +257,16 @@ The analyzer uses conservative static analysis and does not guarantee detection 
 - [x] Phase 2: TypeScript Consumer Dependency Analysis
 - [x] Phase 3: GitHub App Integration and Asynchronous PR Analysis
 - [x] Phase 4: AI-Generated Impact Explanations using Ollama (Llama 3.2)
-- [ ] Phase 5: PostgreSQL Persistence and React Dashboard
+- [x] Phase 5: PostgreSQL Persistence and React Dashboard
 - [ ] Phase 6: Production Deployment, Testing, and Documentation Improvements
 
 ## Project Status
 
-**Phases 1–4 are implemented and tested.**
+**Phases 1–5 are implemented.**
 
 The analyzer currently supports automated GitHub pull request analysis, breaking API change detection, TypeScript consumer impact identification, and AI-powered explanations published through GitHub Checks.
 
-The next development milestone is persistent analysis history and a React dashboard.
+PostgreSQL stores PR analysis history for the local React dashboard.
 
 ## Demo
 

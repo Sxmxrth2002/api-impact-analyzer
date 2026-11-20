@@ -1,0 +1,220 @@
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  color: #162b30;
+  background: #f2f6f5;
+  font-synthesis: none;
+  line-height: 1.5;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+button:focus-visible,
+summary:focus-visible,
+a:focus-visible {
+  outline: 3px solid #147f74;
+  outline-offset: 3px;
+}
+a {
+  color: #08655c;
+}
+.masthead {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem max(1.25rem, calc((100% - 68rem) / 2));
+  color: #eaf8f3;
+  background: #103634;
+  font-weight: 650;
+}
+.mark {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  background: #b7ead3;
+  color: #103634;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+main {
+  max-width: 70.5rem;
+  padding: 3rem 1.25rem;
+  margin: auto;
+}
+.title {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+h1 {
+  margin: 0;
+  font-size: clamp(1.65rem, 5vw, 2.8rem);
+  letter-spacing: -0.045em;
+  line-height: 1.1;
+}
+h2 {
+  font-size: 1.1rem;
+  margin: 0;
+}
+.title button,
+.notice button,
+nav button {
+  border: 1px solid #b6cac5;
+  border-radius: 0.45rem;
+  padding: 0.45rem 0.8rem;
+  color: #10433e;
+  background: white;
+}
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 7rem 8rem 12rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+}
+.column-heading {
+  color: #355851;
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+.record,
+.notice {
+  margin: 0 0 0.55rem;
+  border: 1px solid #cfddda;
+  border-radius: 0.7rem;
+  background: white;
+}
+.record-button {
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+}
+.record-button:hover,
+.record-button[aria-expanded="true"] {
+  background: #e9f5f0;
+}
+.record-button strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+code,
+time,
+.muted {
+  color: #455f60;
+}
+code {
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+time {
+  font-size: 0.875rem;
+}
+.breaking {
+  color: #9b3620;
+  font-weight: 700;
+}
+.detail,
+.notice {
+  padding: 1rem;
+}
+.detail .notice {
+  margin: 0;
+}
+.revision dl {
+  margin: 0.7rem 0 1rem;
+}
+dl div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.6rem;
+}
+dt {
+  color: #455f60;
+  font-size: 0.875rem;
+}
+dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.findings {
+  border-top: 1px solid #e1e9e7;
+}
+summary {
+  padding: 0.6rem 0;
+  cursor: pointer;
+  font-weight: 600;
+}
+summary span {
+  margin-left: 0.4rem;
+  color: #455f60;
+}
+.findings ul {
+  padding-left: 1.4rem;
+}
+.findings li + li {
+  margin-top: 0.6rem;
+}
+.explanation {
+  margin-top: 0.9rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background: #eff6f3;
+}
+.explanation p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin-bottom: 0;
+}
+nav {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+@media (max-width: 650px) {
+  main {
+    padding-top: 2rem;
+  }
+  .columns {
+    grid-template-columns: 1fr 1fr;
+  }
+  .column-heading {
+    display: none;
+  }
+  .record-button > :first-child {
+    grid-column: 1 / -1;
+  }
+  .record-button .sr-only {
+    position: static;
+    width: auto;
+    height: auto;
+    clip-path: none;
+  }
+  .record-button time {
+    grid-column: 1 / -1;
+  }
+}

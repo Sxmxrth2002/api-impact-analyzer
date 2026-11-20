@@ -103,7 +103,7 @@ app.post("/webhooks/github", async (request, reply) => {
 
   try {
     const queuedJob = await analysisQueue.add("analyze-pr", job, {
-      jobId: `${job.repositoryId}-${job.pullRequestNumber}-${job.headSha}`,
+      jobId: `${job.repositoryId}-${job.pullRequestNumber}-${job.baseSha}-${job.headSha}`,
     });
 
     app.log.info({ jobId: queuedJob.id }, "PR analysis job queued");
